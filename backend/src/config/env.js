@@ -20,6 +20,8 @@ module.exports.env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   adminEmail: process.env.ADMIN_EMAIL,
   adminPasswordHash: process.env.ADMIN_PASSWORD_HASH,
+  githubUsername: process.env.GITHUB_USERNAME || 'manishs72660-collab',
+  leetcodeUsername: process.env.LEETCODE_USERNAME || 'manishsingh18',
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,

@@ -24,6 +24,19 @@ account and its Google App Password. Set `MAIL_TO` to the inbox that should
 receive messages; it defaults to `MAIL_USER`. Never use your regular Gmail
 password or expose these values in frontend code.
 
+## Coding profiles
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET | `/stats` | Public | GitHub and LeetCode profile summaries and activity heatmaps |
+
+Set `GITHUB_USERNAME` and `LEETCODE_USERNAME` in `backend/.env` to choose the
+public profiles. They default to the portfolio owner's profile names. Activity
+data is cached in memory for five minutes. Each provider can fail independently;
+if one is unavailable, its response entry includes an `error` while the other
+provider's data remains available. If both providers fail, the endpoint returns
+an error response.
+
 ## Projects
 
 | Method | Endpoint | Access | Purpose |

@@ -171,12 +171,14 @@ export function TechStack() {
 }
 
 export function ProjectCard({ p, i = 0 }) {
-  const img = p.thumbnail || p.image; const tech = p.techStack || p.technologies || [];
+  const img = p.imageUrl || p.thumbnail || p.image || p.coverImageUrl;
+  const tech = p.technologies || p.techStack || [];
+  const [imageFailed, setImageFailed] = useState(false);
   return (
     <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (i % 3) * 0.12, duration: 0.6 }}
       whileHover={{ y: -10 }} onMouseMove={spot} className="spot glass group flex flex-col overflow-hidden rounded-3xl transition-colors hover:border-acc/50">
-      <div className="relative h-52 overflow-hidden bg-zinc-900">
-        {img ? <img src={img} alt={p.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+      <div className="relative h-52 overflow-hidden bg-slate-900">
+        {img && !imageFailed ? <img src={img} alt={`${p.title} preview`} onError={() => setImageFailed(true)} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
           : <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#a3e63522,transparent_60%)] font-display text-8xl font-bold text-white/10">{p.title?.[0]}</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] to-transparent" />
         <span className="absolute left-4 top-4 rounded-full bg-black/60 px-3 py-1 text-[11px] text-acc backdrop-blur">{p.category || 'Web App'}</span>

@@ -5,6 +5,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const statsRoutes = require('./routes/statsRoutes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -22,6 +23,7 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/blogs', blogRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/stats', statsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
