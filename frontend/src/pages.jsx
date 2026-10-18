@@ -5,6 +5,7 @@ import { ArrowRight, GraduationCap, ArrowLeft, Github, Code2, ExternalLink, Flam
 import { api, arr } from './api.js';
 import { TechStack, ProjectCard, Contact, Avatar, Head } from './components.jsx';
 import { PROFILE } from './Profile.js';
+import { PROJECT_CATEGORIES } from './projectCategories.js';
 
 const useGet = (path, init = []) => {
   const [d, setD] = useState(init); const [l, setL] = useState(true); const [err, setErr] = useState('');
@@ -126,9 +127,31 @@ export function Home() {
 }
 
 export function Projects() {
-  const [pj, l] = useProjects(); const [q, setQ] = useState('');
-  const list = pj.filter(x => (x.title + (x.technologies || x.techStack || []).join()).toLowerCase().includes(q.toLowerCase()));
+  const [pj, l] = useProjects(); const [q, setQ] = useState(''); const [category, setCategory] = useState('All');
+  const categoryOrder = ['full stack', 'backend', 'ai', 'frontend', 'chrome extension'];
+  const categories = ['All', ...[...PROJECT_CATEGORIES, ...pj.map(project => project.category).filter(Boolean)]
+    .filter((item, index, items) => items.findIndex(value => value.toLowerCase() === item.toLowerCase()) === index)];
+  const list = pj
+    .filter(x =>
+      (category === 'All' || x.category?.toLowerCase() === category.toLowerCase())
+      && (x.title + (x.technologies || x.techStack || []).join()).toLowerCase().includes(q.toLowerCase()),
+    )
+    .map((project, index) => ({ project, index }))
+    .sort((a, b) => {
+      const aRank = categoryOrder.indexOf(a.project.category?.toLowerCase());
+      const bRank = categoryOrder.indexOf(b.project.category?.toLowerCase());
+      return (aRank < 0 ? categoryOrder.length : aRank) - (bRank < 0 ? categoryOrder.length : bRank) || a.index - b.index;
+    })
+    .map(({ project }) => project);
   return <Wrap title="Projects" sub="Things I've built and shipped">
+    <div className="mb-6 flex flex-wrap gap-2" aria-label="Filter projects by category">
+      {categories.map(item => (
+        <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}
+          className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${category === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900'}`}>
+          {item}
+        </button>
+      ))}
+    </div>
     <input className="inp mb-8 max-w-sm" placeholder="Search projects or tech..." value={q} onChange={e => setQ(e.target.value)} />
     {l ? <p className="text-slate-500">Loading...</p>
       : list.length === 0 ? <p className="text-slate-500">No projects match your search.</p>

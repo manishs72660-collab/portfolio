@@ -56,7 +56,9 @@ is also accepted), `githubUrl` (`repositoryUrl` is also accepted),
 and `isPublished`. Set `thumbnail` as the multipart file field to upload an
 image to Cloudinary; media URLs cannot be supplied in JSON. The API returns
 the generated image URL as `imageUrl` and stores its Cloudinary public ID as
-`imagePublicId`. New projects are unpublished by default.
+`imagePublicId`. The admin form provides `Full Stack`, `Frontend`, `Backend`,
+`AI`, and `Chrome Extension` category choices. New projects are unpublished by
+default.
 
 ```json
 {

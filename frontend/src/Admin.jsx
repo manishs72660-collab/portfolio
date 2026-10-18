@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, arr } from './api.js';
 import { LoaderCircle, Pencil, X } from 'lucide-react';
+import { PROJECT_CATEGORIES } from './projectCategories.js';
 
 const box = 'inp';
 const primary = 'w-full rounded-lg bg-slate-800 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700';
@@ -100,7 +101,10 @@ function Manager({ kind }) {
           <input name="slug" className={box} placeholder="Slug (optional; generated from title)" defaultValue={editing?.slug || ''} />
           {isP ? <>
             <textarea name="description" required rows={5} className={box} placeholder="Description" defaultValue={editing?.description || ''} />
-            <input name="category" required className={box} placeholder="Category (e.g. Full Stack)" defaultValue={editing?.category || ''} />
+            <select name="category" required className={box} defaultValue={editing?.category || PROJECT_CATEGORIES[0]}>
+              {!PROJECT_CATEGORIES.includes(editing?.category) && editing?.category && <option value={editing.category}>{editing.category} (existing category)</option>}
+              {PROJECT_CATEGORIES.map(category => <option key={category} value={category}>{category}</option>)}
+            </select>
             <input name="technologies" className={box} placeholder="Technologies (comma separated)" defaultValue={(editing?.technologies || []).join(', ')} />
             <input name="liveUrl" type="url" className={box} placeholder="Live demo URL" defaultValue={editing?.liveUrl || ''} />
             <input name="githubUrl" type="url" className={box} placeholder="GitHub URL" defaultValue={editing?.repositoryUrl || ''} />
