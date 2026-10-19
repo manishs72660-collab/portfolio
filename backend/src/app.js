@@ -15,16 +15,17 @@ const app = express();
 const frontendOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://portfolio-eta-drab-90.vercel.app',
   ...(process.env.FRONTEND_URL || '').split(','),
 ]
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
 app.use((req, res, next) => {
   const origin = req.get('Origin');
 
   if (!origin) return next();
-  if (!frontendOrigins.includes(origin)) {
+  if (!frontendOrigins.includes(origin.replace(/\/+$/, ''))) {
     return res.status(403).json({ message: 'Origin not allowed' });
   }
 

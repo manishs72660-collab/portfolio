@@ -10,9 +10,10 @@ override it (for example, `http://localhost:5000` for a local backend).
 Configure `FRONTEND_URL` on the backend with the deployed frontend's exact
 origin (for example, `https://portfolio.example.com`); multiple
 comma-separated origins are supported. Local development origins
-`http://localhost:5173` and `http://127.0.0.1:5173` are always allowed. In
-production, the admin cookie uses `SameSite=None; Secure` so credentialed
-requests from an approved frontend origin can use it.
+`http://localhost:5173` and `http://127.0.0.1:5173`, and
+`https://portfolio-eta-drab-90.vercel.app` are always allowed. In production,
+the admin cookie uses `SameSite=None; Secure` so credentialed requests from an
+approved frontend origin can use it.
 
 `/blog` remains as a backward-compatible alias for `/blogs`.
 
@@ -29,10 +30,12 @@ are limited to 5 MB and PNG, JPEG, GIF, and WebP.
 
 Send JSON with `name` (up to 100 characters), `email`, and `message` (up to
 5000 characters). The endpoint is limited to 5 messages per IP per 15 minutes.
-Configure `MAIL_USER` and `MAIL_APP_PASSWORD` in `backend/.env` with the Gmail
-account and its Google App Password. Set `MAIL_TO` to the inbox that should
-receive messages; it defaults to `MAIL_USER`. Never use your regular Gmail
-password or expose these values in frontend code.
+Configure `RESEND_API_KEY`, `RESEND_FROM`, and `MAIL_TO` in the backend
+hosting service's environment settings. `RESEND_FROM` must be a sender address
+verified with Resend; `MAIL_TO` is the inbox that should receive messages.
+The backend sends mail through Resend's HTTPS API, which works on Render Free
+where outbound SMTP is blocked. Provider requests time out after 15 seconds;
+check backend logs for provider errors. Never put the API key in frontend code.
 
 ## Coding profiles
 

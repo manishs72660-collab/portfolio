@@ -37,8 +37,8 @@ module.exports.env = {
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
   mail: {
-    user: process.env.MAIL_USER,
-    appPassword: process.env.MAIL_APP_PASSWORD,
+    resendApiKey: process.env.RESEND_API_KEY,
+    from: process.env.RESEND_FROM,
     to: process.env.MAIL_TO || process.env.MAIL_USER,
   },
   rag: {

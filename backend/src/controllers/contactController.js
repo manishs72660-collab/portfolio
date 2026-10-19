@@ -1,4 +1,3 @@
-const nodemailer = require('nodemailer');
 const { env } = require('../config/env');
 const AppError = require('../utils/AppError');
 
@@ -25,24 +24,38 @@ function validateContactBody(body) {
 
 async function sendContactMessage(req, res) {
   const { name, email, message } = validateContactBody(req.body);
-  const { user, appPassword, to } = env.mail;
+  const { resendApiKey, from, to } = env.mail;
 
-  if (!user || !appPassword || !to) {
+  if (!resendApiKey || !from || !to) {
     throw new AppError('Email delivery is not configured on the server', 503);
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass: appPassword },
-  });
+  let response;
+  try {
+    response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        reply_to: email,
+        subject: `Portfolio message from ${name}`,
+        text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    console.error('Email provider request failed:', error.name, error.message);
+    throw new AppError('Email delivery failed. Please try again later.', 502, { expose: true });
+  }
 
-  await transporter.sendMail({
-    from: `"Portfolio Contact" <${user}>`,
-    to,
-    replyTo: email,
-    subject: `Portfolio message from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
-  });
+  if (!response.ok) {
+    console.error('Email provider rejected contact message with status:', response.status);
+    throw new AppError('Email delivery failed. Please try again later.', 502, { expose: true });
+  }
 
   res.status(200).json({ success: true, message: 'Your message has been sent successfully' });
 }

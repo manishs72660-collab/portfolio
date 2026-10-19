@@ -267,12 +267,19 @@ export function Contact() {
     setStatus({ message: '', error: false });
     setSending(true);
     try {
-      const result = await api('/contact', { method: 'POST', body: JSON.stringify(f) });
+      const result = await api('/contact', {
+        method: 'POST',
+        body: JSON.stringify(f),
+        signal: AbortSignal.timeout(20_000),
+      });
       setStatus({ message: result.message || 'Your message has been sent successfully.', error: false });
       setF({ name: '', email: '', message: '' });
       e.target.reset();
     } catch (error) {
-      setStatus({ message: error.message || 'Unable to send your message. Please try again.', error: true });
+      const message = error.name === 'TimeoutError'
+        ? 'Email service timed out. Please try again.'
+        : error.message || 'Unable to send your message. Please try again.';
+      setStatus({ message, error: true });
     } finally {
       setSending(false);
     }

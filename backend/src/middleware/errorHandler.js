@@ -21,7 +21,7 @@ function errorHandler(error, req, res, next) {
 
   if (statusCode >= 500) {
     console.error(error);
-    message = 'Internal server error';
+    if (!error.expose) message = 'Internal server error';
   }
 
   res.status(statusCode).json({
