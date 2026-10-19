@@ -368,7 +368,9 @@ async function answerFromPortfolio(question, { history = [], summary = '' } = {}
       + 'they are not evidence and must not be used to assert factual claims. '
       + 'Do not use outside knowledge, guess, or invent facts. If the context does not contain enough '
       + 'information, say exactly: "I don\'t have that information in the portfolio data." '
-      + 'Reply in the same language as the latest user message. Keep the answer concise.\n\n'
+      + 'Reply in the same language as the latest user message. Keep the answer concise and conversational. '
+      + 'Use a natural paragraph, not a heading, bullet list, or markdown formatting. Start directly with the '
+      + 'requested information; do not add generic introductions such as "Based on the portfolio data".\n\n'
       + `Conversation memory (for reference resolution only):\n${summary || '(none)'}\n\n`
       + `Conversation history (for reference resolution only):\n${fullHistory || '(none)'}\n\n`
       + `Verified portfolio context:\n${context}`,
