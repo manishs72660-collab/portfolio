@@ -1,6 +1,7 @@
 const Project = require('../models/Project');
 const AppError = require('../utils/AppError');
 const { saveRecordWithImage, deleteOldImage } = require('../utils/imageRecord');
+const { syncProjectToRag, removeRagSource } = require('../services/ragService');
 const {
   rejectUnknownFields,
   requireFields,
@@ -130,6 +131,7 @@ async function createProject(req, res) {
   const project = new Project();
   applyProjectFields(project, body, { creating: true });
   await saveRecordWithImage(project, req.file, 'portfolio/projects', 'imageUrl', 'imagePublicId');
+  await syncProjectToRag(project);
   res.status(201).json({ success: true, data: project });
 }
 
@@ -148,6 +150,7 @@ async function updateProject(req, res) {
     'imagePublicId',
     originalImagePublicId,
   );
+  await syncProjectToRag(project);
   res.json({ success: true, data: project });
 }
 
@@ -155,6 +158,7 @@ async function deleteProject(req, res) {
   const project = await Project.findById(parseId(req.params.id, 'project ID'));
   if (!project) throw new AppError('Project not found', 404);
   await project.deleteOne();
+  await removeRagSource(`project:${project.id}`);
   await deleteOldImage(project.imagePublicId);
   res.json({ success: true, message: 'Project deleted successfully' });
 }

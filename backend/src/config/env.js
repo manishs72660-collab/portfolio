@@ -3,6 +3,15 @@ const dotenv = require('dotenv');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+function numericEnv(name, fallback) {
+  const rawValue = process.env[name];
+  if (rawValue === undefined || rawValue === '') return fallback;
+
+  const value = Number(rawValue);
+  if (!Number.isFinite(value)) throw new Error(`${name} must be a number`);
+  return value;
+}
+
 const jwtSecret = process.env.JWT_SECRET;
 
 if (!process.env.MONGODB_URI) {
@@ -31,5 +40,20 @@ module.exports.env = {
     user: process.env.MAIL_USER,
     appPassword: process.env.MAIL_APP_PASSWORD,
     to: process.env.MAIL_TO || process.env.MAIL_USER,
+  },
+  rag: {
+    googleApiKey: process.env.GOOGLE_API_KEY,
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash',
+    qdrantUrl: process.env.QDRANT_URL,
+    qdrantApiKey: process.env.QDRANT_API_KEY,
+    qdrantCollection: process.env.QDRANT_COLLECTION_NAME || 'portfolio_knowledge',
+    chunkSize: numericEnv('RAG_CHUNK_SIZE', 800),
+    chunkOverlap: numericEnv('RAG_CHUNK_OVERLAP', 120),
+    topK: numericEnv('RAG_TOP_K', 5),
+    minScore: numericEnv('RAG_MIN_SCORE', 0.35),
+    rateLimitWindowMs: numericEnv('RAG_RATE_LIMIT_WINDOW_MS', 900000),
+    rateLimitMax: numericEnv('RAG_RATE_LIMIT_MAX', 15),
+    conversationTtlDays: numericEnv('RAG_CONVERSATION_TTL_DAYS', 30),
   },
 };

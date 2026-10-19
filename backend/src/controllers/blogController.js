@@ -1,6 +1,7 @@
 const BlogPost = require('../models/BlogPost');
 const AppError = require('../utils/AppError');
 const { saveRecordWithImage, deleteOldImage } = require('../utils/imageRecord');
+const { syncBlogToRag, removeRagSource } = require('../services/ragService');
 const {
   rejectUnknownFields,
   requireFields,
@@ -135,6 +136,7 @@ async function createBlogPost(req, res) {
   const post = new BlogPost();
   applyBlogFields(post, body, req.admin, { creating: true });
   await saveRecordWithImage(post, req.file, 'portfolio/blog', 'coverImageUrl', 'coverImagePublicId');
+  await syncBlogToRag(post);
   res.status(201).json({ success: true, data: post });
 }
 
@@ -153,6 +155,7 @@ async function updateBlogPost(req, res) {
     'coverImagePublicId',
     originalCoverImagePublicId,
   );
+  await syncBlogToRag(post);
   res.json({ success: true, data: post });
 }
 
@@ -160,6 +163,7 @@ async function deleteBlogPost(req, res) {
   const post = await BlogPost.findById(parseId(req.params.id, 'blog post ID'));
   if (!post) throw new AppError('Blog post not found', 404);
   await post.deleteOne();
+  await removeRagSource(`blog:${post.id}`);
   await deleteOldImage(post.coverImagePublicId);
   res.json({ success: true, message: 'Blog post deleted successfully' });
 }

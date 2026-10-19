@@ -4,6 +4,16 @@ Base URL: `/api/v1`. JSON responses use `{ "success": true, "data": ... }`;
 list responses also include `pagination`. Errors use `{ "success": false,
 "message": "..." }`.
 
+The frontend uses `https://portfolio-3wxj.onrender.com` as its API origin in
+development and production. Set `VITE_API_URL` at frontend build time to
+override it (for example, `http://localhost:5000` for a local backend).
+Configure `FRONTEND_URL` on the backend with the deployed frontend's exact
+origin (for example, `https://portfolio.example.com`); multiple
+comma-separated origins are supported. Local development origins
+`http://localhost:5173` and `http://127.0.0.1:5173` are always allowed. In
+production, the admin cookie uses `SameSite=None; Secure` so credentialed
+requests from an approved frontend origin can use it.
+
 `/blog` remains as a backward-compatible alias for `/blogs`.
 
 Admin endpoints require the HTTP-only `adminToken` cookie issued by
@@ -72,6 +82,54 @@ default.
   "isPublished": true
 }
 ```
+
+## Portfolio Q&A (RAG)
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| POST | `/rag/ask` | Public, rate limited | Answer a one-off question using indexed portfolio content |
+| POST | `/rag/chat` | Public, rate limited | Continue a persisted portfolio conversation |
+| GET | `/rag/conversations/:conversationId` | Public | Restore a saved conversation |
+| DELETE | `/rag/conversations/:conversationId` | Public | Delete a saved conversation |
+
+Send JSON with a non-empty `question` of at most 1000 characters:
+
+```json
+{ "question": "Which technologies has Manish used in his projects?" }
+```
+
+The response contains `data.answer` and `data.sources` (source title, type,
+portfolio URL, and retrieval score). If the indexed content does not support
+an answer, the API says it does not have that information instead of guessing.
+Requests are limited by IP using `RAG_RATE_LIMIT_WINDOW_MS` and
+`RAG_RATE_LIMIT_MAX`.
+
+For a multi-turn chat, send the same question with an optional `conversationId`
+to `POST /rag/chat`. The first response returns a UUID `conversationId`; pass it
+on later messages. The backend stores the transcript in MongoDB and uses it to
+resolve follow-up questions, while factual answers still require matching
+portfolio sources. `GET /rag/conversations/:conversationId` restores the
+transcript and source references; `DELETE` clears it. The browser widget keeps
+the ID in local storage so the chat can be restored after a page reload.
+Conversations expire after `RAG_CONVERSATION_TTL_DAYS` (30 days by default);
+older turns are summarized for model context while the full transcript remains
+available for restoration.
+
+At startup, the backend indexes the static content in
+`frontend/src/Profile.js` and current MongoDB profile, published projects, and
+published blog posts in the configured Qdrant collection. Project/blog create,
+update, publish, unpublish, and delete API operations sync that record before
+returning. Draft projects and unpublished or scheduled blog posts are not
+available to public answers. The collection is reconciled at startup, so
+content removed while the backend was offline is removed from the index.
+
+Configure `GOOGLE_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` in
+`backend/.env`; the server will not start without these RAG credentials.
+`GEMINI_EMBEDDING_MODEL` defaults to `gemini-embedding-001` with 768
+dimensions; `GEMINI_CHAT_MODEL` defaults to `gemini-2.5-flash`. Use a dedicated
+Qdrant collection (`QDRANT_COLLECTION_NAME`) for this portfolio. Chunking,
+retrieval score, result count, and request limits can be adjusted with the
+`RAG_*` settings in `backend/.env.example`.
 
 ## Blog posts
 

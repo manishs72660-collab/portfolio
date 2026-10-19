@@ -60,3 +60,83 @@
 }
 
 @keyframes blink { 50% { opacity: 0; } }
+
+.portfolio-chat-orbit {
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgb(163 230 53 / .55);
+  border-radius: 9999px;
+  animation: portfolio-chat-orbit 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.portfolio-chat-orbit::after {
+  position: absolute;
+  top: 9px;
+  left: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #d9f99d;
+  box-shadow: 0 0 12px rgb(217 249 157 / .9);
+  content: '';
+}
+
+.portfolio-chat-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: #7c3aed;
+  animation: portfolio-chat-caret 850ms steps(2, start) infinite;
+}
+
+.portfolio-chat-url {
+  line-height: 1.25;
+}
+
+.portfolio-chat-url:focus-visible,
+.portfolio-chat-source:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.portfolio-chat-user,
+.portfolio-chat-assistant {
+  animation: portfolio-chat-bubble-in 220ms ease-out both;
+}
+
+@keyframes portfolio-chat-caret {
+  to { visibility: hidden; }
+}
+
+@keyframes portfolio-chat-bubble-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes portfolio-chat-orbit {
+  0%, 100% { transform: rotate(-8deg) scale(1); opacity: .65; }
+  50% { transform: rotate(8deg) scale(1.08); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-chat-orbit { animation: none; }
+  .portfolio-chat-caret { animation: none; }
+  .portfolio-chat-user,
+  .portfolio-chat-assistant { animation: none; }
+}
+
+@media (max-width: 480px) {
+  .portfolio-chat {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .portfolio-chat-panel {
+    width: calc(100vw - 24px);
+    height: min(620px, calc(100dvh - 100px));
+  }
+}

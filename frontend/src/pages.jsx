@@ -5,7 +5,7 @@ import { ArrowRight, GraduationCap, ArrowLeft, Github, Code2, ExternalLink, Flam
 import { api, arr } from './api.js';
 import { TechStack, ProjectCard, Contact, Avatar, Head } from './components.jsx';
 import { PROFILE } from './Profile.js';
-import { PROJECT_CATEGORIES } from './projectCategories.js';
+import { PROJECT_CATEGORIES, sortProjectsByCategory } from './projectCategories.js';
 
 const useGet = (path, init = []) => {
   const [d, setD] = useState(init); const [l, setL] = useState(true); const [err, setErr] = useState('');
@@ -115,7 +115,7 @@ export function Home() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <Head title="My Work" sub="Explore my latest projects and creations" />
       <div className="grid gap-6 md:grid-cols-3">
-        {pj.slice(0, 3).map((x, i) => <ProjectCard key={x._id || x.slug} p={x} i={i} />)}
+        {sortProjectsByCategory(pj).slice(0, 3).map((x, i) => <ProjectCard key={x._id || x.slug} p={x} i={i} />)}
       </div>
       <div className="mt-12 text-center">
         <Link to="/projects" className="btn btn-o">See all projects <ArrowRight size={16} /></Link>
@@ -128,21 +128,13 @@ export function Home() {
 
 export function Projects() {
   const [pj, l] = useProjects(); const [q, setQ] = useState(''); const [category, setCategory] = useState('All');
-  const categoryOrder = ['full stack', 'backend', 'ai', 'frontend', 'chrome extension'];
   const categories = ['All', ...[...PROJECT_CATEGORIES, ...pj.map(project => project.category).filter(Boolean)]
     .filter((item, index, items) => items.findIndex(value => value.toLowerCase() === item.toLowerCase()) === index)];
-  const list = pj
+  const list = sortProjectsByCategory(pj
     .filter(x =>
       (category === 'All' || x.category?.toLowerCase() === category.toLowerCase())
       && (x.title + (x.technologies || x.techStack || []).join()).toLowerCase().includes(q.toLowerCase()),
-    )
-    .map((project, index) => ({ project, index }))
-    .sort((a, b) => {
-      const aRank = categoryOrder.indexOf(a.project.category?.toLowerCase());
-      const bRank = categoryOrder.indexOf(b.project.category?.toLowerCase());
-      return (aRank < 0 ? categoryOrder.length : aRank) - (bRank < 0 ? categoryOrder.length : bRank) || a.index - b.index;
-    })
-    .map(({ project }) => project);
+    ));
   return <Wrap title="Projects" sub="Things I've built and shipped">
     <div className="mb-6 flex flex-wrap gap-2" aria-label="Filter projects by category">
       {categories.map(item => (

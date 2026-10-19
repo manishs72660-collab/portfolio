@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Navbar, Contact } from './components.jsx';
 import { Home, Projects, ProjectDetail, Blog, BlogPost, Education } from './pages.jsx';
 import Admin from './Admin.jsx';
+import ChatWidget from './ChatWidget.jsx';
 export default function App() {
   return (<>
     <Navbar />
@@ -16,5 +17,6 @@ export default function App() {
       <Route path="/admin" element={<Admin />} />
     </Routes>
     <footer className="py-6 text-center text-sm text-slate-500">© {new Date().getFullYear()} Portfolio</footer>
+    <ChatWidget />
   </>);
 }
