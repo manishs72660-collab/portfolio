@@ -44,7 +44,7 @@ module.exports.env = {
   rag: {
     googleApiKey: process.env.GOOGLE_API_KEY,
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
-    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash',
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash',
     qdrantUrl: process.env.QDRANT_URL,
     qdrantApiKey: process.env.QDRANT_API_KEY,
     qdrantCollection: process.env.QDRANT_COLLECTION_NAME || 'portfolio_knowledge',
