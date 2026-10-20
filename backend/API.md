@@ -130,7 +130,7 @@ Configure `GOOGLE_API_KEY`, `GROQ_API_KEY`, `QDRANT_URL`, and
 `QDRANT_API_KEY` in `backend/.env`; the server will not start without these
 RAG credentials. `GEMINI_EMBEDDING_MODEL` defaults to `gemini-embedding-001`
 with 768 dimensions, while `GROQ_CHAT_MODEL` defaults to
-`llama-3.1-8b-instant`. Use a dedicated Qdrant collection
+`openai/gpt-oss-20b`. Use a dedicated Qdrant collection
 (`QDRANT_COLLECTION_NAME`) for this portfolio. Chunking, retrieval score,
 result count, and request limits can be adjusted with the `RAG_*` settings in
 `backend/.env.example`.

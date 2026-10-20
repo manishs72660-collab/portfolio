@@ -45,7 +45,7 @@ module.exports.env = {
     googleApiKey: process.env.GOOGLE_API_KEY,
     groqApiKey: process.env.GROQ_API_KEY,
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
-    groqChatModel: process.env.GROQ_CHAT_MODEL || 'llama-3.1-8b-instant',
+    groqChatModel: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b',
     qdrantUrl: process.env.QDRANT_URL,
     qdrantApiKey: process.env.QDRANT_API_KEY,
     qdrantCollection: process.env.QDRANT_COLLECTION_NAME || 'portfolio_knowledge',
