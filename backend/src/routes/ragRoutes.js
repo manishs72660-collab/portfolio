@@ -4,6 +4,7 @@ const { env } = require('../config/env');
 const {
   askQuestion,
   chat,
+  streamChat,
   deleteConversation,
   getConversation,
 } = require('../controllers/ragController');
@@ -21,6 +22,7 @@ const askLimiter = rateLimit({
 
 router.post('/ask', askLimiter, asyncHandler(askQuestion));
 router.post('/chat', askLimiter, asyncHandler(chat));
+router.post('/chat/stream', askLimiter, asyncHandler(streamChat));
 router.get('/conversations/:conversationId', asyncHandler(getConversation));
 router.delete('/conversations/:conversationId', asyncHandler(deleteConversation));
 

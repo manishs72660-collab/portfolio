@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUpRight, Cat, LoaderCircle, MessageCircle, Send, Sparkles, Trash2, X } from 'lucide-react';
-import { api } from './api.js';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { api, streamChat } from './api.js';
 
 const STORAGE_KEY = 'portfolio-chat-conversation';
 const SUGGESTIONS = [
@@ -9,84 +11,65 @@ const SUGGESTIONS = [
   'Which technologies does he use?',
   'Tell me about his education.',
 ];
-const URL_PATTERN = /https?:\/\/[^\s<>()]+/gi;
-
-function messageParts(text) {
-  const parts = [];
-  let cursor = 0;
-
-  for (const match of text.matchAll(URL_PATTERN)) {
-    const rawUrl = match[0];
-    const url = rawUrl.replace(/[.,!?;:]+$/, '');
-    if (!url) continue;
-    const start = match.index;
-    const end = start + url.length;
-
-    if (start > cursor) parts.push({ type: 'text', value: text.slice(cursor, start) });
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('Unsupported URL protocol');
-      parts.push({ type: 'url', value: url, domain: parsed.hostname.replace(/^www\./i, '') });
-    } catch {
-      parts.push({ type: 'text', value: url });
-    }
-    cursor = end;
-  }
-
-  if (cursor < text.length) parts.push({ type: 'text', value: text.slice(cursor) });
-  return parts;
-}
-
-function ChatMessageContent({ content, animate, onReveal }) {
-  const characters = Array.from(content);
-  const [visibleCharacters, setVisibleCharacters] = useState(animate ? 0 : characters.length);
-  const finished = visibleCharacters >= characters.length;
-
-  useEffect(() => {
-    if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setVisibleCharacters(characters.length);
-      return undefined;
-    }
-
-    setVisibleCharacters(0);
-    let shownCharacters = 0;
-    const timer = window.setInterval(() => {
-      shownCharacters = Math.min(shownCharacters + (characters.length > 300 ? 2 : 1), characters.length);
-      setVisibleCharacters(shownCharacters);
-      onReveal?.();
-      if (shownCharacters >= characters.length) window.clearInterval(timer);
-    }, 18);
-    return () => window.clearInterval(timer);
-  }, [animate, characters.length, onReveal]);
-
-  const visibleContent = characters.slice(0, visibleCharacters).join('');
-  const parts = messageParts(visibleContent);
-
+function ChatMessageContent({ content, streaming }) {
   return (
-    <div className="space-y-2">
-      <div className="whitespace-pre-wrap break-words text-sm leading-6">
-        {parts.map((part, index) => (
-          part.type === 'text'
-            ? <span key={`text-${index}`}>{part.value}</span>
-            : <a
-              key={`url-${index}`}
-              href={part.value}
-              target="_blank"
-              rel="noreferrer"
-              className="portfolio-chat-url group my-1.5 flex max-w-full items-center gap-3 rounded-xl border border-violet-200/80 bg-gradient-to-r from-violet-50 via-white to-sky-50 px-3 py-2.5 text-left no-underline shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-500 text-white shadow-sm">
-                <ArrowUpRight size={17} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-slate-800">{part.domain}</span>
-                <span className="mt-0.5 block truncate text-[10px] text-slate-500">{part.value}</span>
-              </span>
-              <ArrowUpRight size={15} className="shrink-0 text-violet-500 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </a>
-        ))}
-        {animate && !finished && <span className="portfolio-chat-caret" aria-hidden="true" />}
-      </div>
+    <div className="portfolio-chat-markdown break-words text-sm leading-6">
+      {content ? (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <h3 className="mb-2 mt-3 text-base font-bold text-slate-900 first:mt-0">{children}</h3>,
+            h2: ({ children }) => <h3 className="mb-2 mt-3 text-[15px] font-bold text-slate-900 first:mt-0">{children}</h3>,
+            h3: ({ children }) => <h3 className="mb-1.5 mt-3 text-sm font-bold text-slate-900 first:mt-0">{children}</h3>,
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+            ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+            li: ({ children }) => <li className="pl-0.5">{children}</li>,
+            strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+            blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-violet-300 pl-3 text-slate-600">{children}</blockquote>,
+            code: ({ children, className }) => (
+              <code className={`${className || ''} rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.9em] text-violet-700`}>
+                {children}
+              </code>
+            ),
+            a: ({ href = '', children }) => {
+              let parsed;
+              try {
+                parsed = new URL(href, window.location.origin);
+              } catch {
+                return <span>{children}</span>;
+              }
+              if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return <span>{children}</span>;
+              const external = parsed.origin !== window.location.origin;
+              return external ? (
+                <a
+                  href={parsed.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="portfolio-chat-url group my-1.5 flex max-w-full items-center gap-3 rounded-xl border border-violet-200/80 bg-gradient-to-r from-violet-50 via-white to-sky-50 px-3 py-2.5 text-left no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-500 text-white shadow-sm">
+                    <ArrowUpRight size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-800">{children}</span>
+                  <ArrowUpRight size={15} className="shrink-0 text-violet-500 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </a>
+              ) : (
+                <a href={parsed.href} className="font-medium text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-900">
+                  {children}
+                </a>
+              );
+            },
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      ) : streaming ? (
+        <span className="inline-flex items-center gap-2 text-xs text-slate-500">
+          <Sparkles size={14} className="text-violet-500" /> Thinking from the portfolio...
+        </span>
+      ) : null}
+      {streaming && content && <span className="portfolio-chat-caret" aria-hidden="true" />}
     </div>
   );
 }
@@ -117,12 +100,8 @@ export default function ChatWidget() {
   const [sending, setSending] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState('');
-  const [animatedMessageIndex, setAnimatedMessageIndex] = useState(-1);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
-  const keepScrolled = useCallback(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, []);
 
   useEffect(() => {
     if (!conversationId) {
@@ -137,7 +116,6 @@ export default function ChatWidget() {
       .then(({ data }) => {
         if (active) {
           setMessages(data.messages || []);
-          setAnimatedMessageIndex(-1);
         }
       })
       .catch((loadError) => {
@@ -172,22 +150,33 @@ export default function ChatWidget() {
 
     setSending(true);
     setError('');
+    const assistantIndex = messages.length + 1;
+    setMessages(current => [
+      ...current,
+      { role: 'user', content: question },
+      { role: 'assistant', content: '', sources: [] },
+    ]);
+    setDraft('');
     try {
-      const { data } = await api('/rag/chat', {
-        method: 'POST',
-        body: JSON.stringify({ question, ...(conversationId ? { conversationId } : {}) }),
+      await streamChat(question, conversationId, (event) => {
+        if (event.type === 'start') {
+          setConversationId(event.conversationId);
+          saveConversationId(event.conversationId);
+        } else if (event.type === 'token') {
+          setMessages(current => current.map((message, index) => (
+            index === assistantIndex ? { ...message, content: message.content + event.token } : message
+          )));
+        } else if (event.type === 'complete') {
+          setMessages(current => current.map((message, index) => (
+            index === assistantIndex ? { ...message, sources: event.sources || [] } : message
+          )));
+        }
       });
-      setConversationId(data.conversationId);
-      saveConversationId(data.conversationId);
-      setMessages(current => [
-        ...current,
-        { role: 'user', content: question },
-        { role: 'assistant', content: data.answer, sources: data.sources || [] },
-      ]);
-      setAnimatedMessageIndex(messages.length + 1);
-      setDraft('');
     } catch (sendError) {
       setError(sendError.message || 'Unable to send your message. Please try again.');
+      setMessages(current => current.filter((message, index) => (
+        index !== assistantIndex || message.content
+      )));
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -205,7 +194,6 @@ export default function ChatWidget() {
       saveConversationId('');
       setConversationId('');
       setMessages([]);
-      setAnimatedMessageIndex(-1);
       setDraft('');
     } catch (clearError) {
       setError(clearError.message || 'Unable to clear this conversation.');
@@ -300,8 +288,7 @@ export default function ChatWidget() {
                       }`}>
                         <ChatMessageContent
                           content={message.content}
-                          animate={message.role === 'assistant' && index === animatedMessageIndex}
-                          onReveal={keepScrolled}
+                          streaming={sending && message.role === 'assistant' && index === messages.length - 1}
                         />
                         {message.role === 'assistant' && message.sources?.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-2.5">
@@ -320,14 +307,6 @@ export default function ChatWidget() {
                       </div>
                     </motion.div>
                   ))}
-                  {sending && (
-                    <div className="flex justify-start">
-                      <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 shadow-sm">
-                        <Sparkles size={14} className="text-violet-500" />
-                        Thinking from the portfolio...
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
               {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{error}</p>}

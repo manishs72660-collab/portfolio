@@ -92,6 +92,7 @@ default.
 | --- | --- | --- | --- |
 | POST | `/rag/ask` | Public, rate limited | Answer a one-off question using indexed portfolio content |
 | POST | `/rag/chat` | Public, rate limited | Continue a persisted portfolio conversation |
+| POST | `/rag/chat/stream` | Public, rate limited | Stream a persisted portfolio chat answer as server-sent events |
 | GET | `/rag/conversations/:conversationId` | Public | Restore a saved conversation |
 | DELETE | `/rag/conversations/:conversationId` | Public | Delete a saved conversation |
 
@@ -106,6 +107,11 @@ portfolio URL, and retrieval score). If the indexed content does not support
 an answer, the API says it does not have that information instead of guessing.
 Requests are limited by IP using `RAG_RATE_LIMIT_WINDOW_MS` and
 `RAG_RATE_LIMIT_MAX`.
+
+The streaming endpoint accepts the same JSON body and emits `start`, `token`,
+`complete`, or `error` events. The `start` event provides the conversation ID;
+`token` events contain answer text as it is generated; and `complete` provides
+the final source references.
 
 For a multi-turn chat, send the same question with an optional `conversationId`
 to `POST /rag/chat`. The first response returns a UUID `conversationId`; pass it
