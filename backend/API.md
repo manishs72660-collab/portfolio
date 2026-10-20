@@ -126,13 +126,14 @@ returning. Draft projects and unpublished or scheduled blog posts are not
 available to public answers. The collection is reconciled at startup, so
 content removed while the backend was offline is removed from the index.
 
-Configure `GOOGLE_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` in
-`backend/.env`; the server will not start without these RAG credentials.
-`GEMINI_EMBEDDING_MODEL` defaults to `gemini-embedding-001` with 768
-dimensions; `GEMINI_CHAT_MODEL` defaults to `gemini-3.8-flash`. Use a dedicated
-Qdrant collection (`QDRANT_COLLECTION_NAME`) for this portfolio. Chunking,
-retrieval score, result count, and request limits can be adjusted with the
-`RAG_*` settings in `backend/.env.example`.
+Configure `GOOGLE_API_KEY`, `GROQ_API_KEY`, `QDRANT_URL`, and
+`QDRANT_API_KEY` in `backend/.env`; the server will not start without these
+RAG credentials. `GEMINI_EMBEDDING_MODEL` defaults to `gemini-embedding-001`
+with 768 dimensions, while `GROQ_CHAT_MODEL` defaults to
+`llama-3.3-70b-versatile`. Use a dedicated Qdrant collection
+(`QDRANT_COLLECTION_NAME`) for this portfolio. Chunking, retrieval score,
+result count, and request limits can be adjusted with the `RAG_*` settings in
+`backend/.env.example`.
 
 ## Blog posts
 

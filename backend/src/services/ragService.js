@@ -3,6 +3,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { Document } = require('@langchain/core/documents');
 const { HumanMessage, SystemMessage } = require('@langchain/core/messages');
+const { ChatGroq } = require('@langchain/groq');
 const { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } = require('@langchain/google-genai');
 const { QdrantVectorStore } = require('@langchain/qdrant');
 const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
@@ -280,6 +281,7 @@ async function syncScheduledBlogPosts() {
 async function initializeRag() {
   const missing = [
     ['GOOGLE_API_KEY', env.rag.googleApiKey],
+    ['GROQ_API_KEY', env.rag.groqApiKey],
     ['QDRANT_URL', env.rag.qdrantUrl],
     ['QDRANT_API_KEY', env.rag.qdrantApiKey],
   ].filter(([, value]) => !value).map(([name]) => name);
@@ -314,9 +316,9 @@ async function initializeRag() {
     collectionName: env.rag.qdrantCollection,
     collectionConfig: { vectors: { size: embeddingDimensions, distance: 'Cosine' } },
   });
-  chatModel = new ChatGoogleGenerativeAI({
-    apiKey: env.rag.googleApiKey,
-    model: env.rag.chatModel,
+  chatModel = new ChatGroq({
+    apiKey: env.rag.groqApiKey,
+    model: env.rag.groqChatModel,
     temperature: 0,
   });
   textSplitter = new RecursiveCharacterTextSplitter({
@@ -348,16 +350,17 @@ async function answerFromPortfolio(question, { history = [], summary = '' } = {}
     .join('\n');
   const fullHistory = history.map(({ role, content }) => `${role}: ${content}`).join('\n');
   const retrievalQuery = [summary, recentHistory, question].filter(Boolean).join('\n');
-  const results = await vectorStore.similaritySearchWithScore(retrievalQuery, env.rag.topK);
+  const results = await vectorStore.similaritySearchWithScore(retrievalQuery, Math.max(env.rag.topK, 6));
   const relevant = results.filter(([, score]) => score >= env.rag.minScore);
-  if (!relevant.length) {
+  const contextCandidates = relevant.length ? relevant : results.slice(0, Math.min(results.length, 3));
+  if (!contextCandidates.length) {
     return {
       answer: "I don't have that information in the portfolio data.",
       sources: [],
     };
   }
 
-  const context = relevant.map(([document], index) => (
+  const context = contextCandidates.map(([document], index) => (
     `[${index + 1}] ${document.metadata.title} (${document.metadata.sourceType})\n${document.pageContent}`
   )).join('\n\n');
   const response = await chatModel.invoke([
@@ -381,7 +384,7 @@ async function answerFromPortfolio(question, { history = [], summary = '' } = {}
   if (!answer) throw new Error('Gemini returned an empty RAG answer');
 
   const uniqueSources = new Map();
-  for (const [document, score] of relevant) {
+  for (const [document, score] of contextCandidates) {
     const sourceId = document.metadata.sourceId;
     if (!uniqueSources.has(sourceId)) {
       uniqueSources.set(sourceId, {
