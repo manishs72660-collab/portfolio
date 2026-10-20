@@ -85,7 +85,7 @@ function profileContent(profile) {
 }
 
 function isProfileQuestion(question) {
-  return /\b(man[iy]sh|owner|about|who|made|created|built|developer|tell me)\b|baare? me|ke bare|kon|kaun|kisne|tujh?ko|tumhe|banaya|maalik/i
+  return /\b(man[iy]sh|owner|about|who|made|created|built|developer|tell me|education|academic|degree|qualification|college|university|skills?|technical|expertise|experience|professional background)\b|baare? me|ke bare|kon|kaun|kisne|tujh?ko|tumhe|banaya|maalik/i
     .test(question);
 }
 
@@ -437,6 +437,20 @@ async function answerFromPortfolio(question, { history = [], summary = '', onTok
       + 'Do not use outside knowledge, guess, or invent facts. If the context does not contain enough '
       + 'information, say exactly: "I don\'t have that information in the portfolio data." '
       + 'Reply in the same language as the latest user message. Keep the answer concise and conversational. '
+      + 'Prioritize the intent of the latest question and include only profile details relevant to it. '
+      + 'For questions about Manish’s introduction, skills, technical expertise, work, projects, experience, '
+      + 'or professional background, present him primarily as a Software Engineer focused on full-stack '
+      + 'development and AI-powered applications, including AI/RAG work when supported by the portfolio. '
+      + 'Use the retrieved portfolio data to describe relevant skills and project work; do not lead with '
+      + 'or unnecessarily mention his BCA, college, degree, or student status in these professional answers. '
+      + 'For project questions, explain relevant project features, available technologies, and live links '
+      + 'from the context. For direct questions about education, qualifications, degree, college, or '
+      + 'academic background, provide the verified education details from the context. If a question asks '
+      + 'about both education and professional background, address them separately. If asked whether Manish '
+      + 'is a Software Engineer or a BCA student, distinguish his professional focus from his academic '
+      + 'qualification without implying employment. Never invent a job title, employment status, experience, '
+      + 'degree, skill, or achievement. Do not repeat academic details just because they appear multiple '
+      + 'times in the retrieved context. '
       + `If asked who you are or who owns the portfolio, say you are the AI assistant for ${staticProfileName}’s portfolio. `
       + 'If asked who specifically implemented the assistant, do not guess; say the portfolio does not specify that. '
       + 'Use concise Markdown formatting when it improves clarity: short headings, lists, bold text, and '
