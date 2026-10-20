@@ -97,6 +97,30 @@
   line-height: 1.25;
 }
 
+.portfolio-chat-panel {
+  min-width: 0;
+  max-width: calc(100vw - 24px);
+  overscroll-behavior: contain;
+}
+
+.portfolio-chat-markdown,
+.portfolio-chat-markdown * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.portfolio-chat-markdown table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.portfolio-chat-markdown th,
+.portfolio-chat-markdown td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .portfolio-chat-url:focus-visible,
 .portfolio-chat-source:focus-visible {
   outline: 2px solid #7c3aed;

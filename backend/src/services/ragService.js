@@ -369,6 +369,31 @@ function textFromChunk(content) {
     .join('');
 }
 
+function isJsonModelOutput(value) {
+  const candidate = value.trimStart();
+  return candidate.startsWith('{')
+    || /^\[\s*(?:"|\{|\[|-?\d|true\b|false\b|null\b|\])/.test(candidate);
+}
+
+function normalizeModelAnswer(value) {
+  const answer = value.trim();
+  const isJsonFence = /^```json\b/i.test(answer) && /```$/.test(answer);
+  const candidate = isJsonFence ? answer.replace(/^```json\b/i, '').replace(/```$/, '').trim() : answer;
+  if (!isJsonModelOutput(candidate) && !isJsonFence) return answer;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const text = [parsed.answer, parsed.content, parsed.text]
+        .find((item) => typeof item === 'string' && item.trim());
+      return text ? text.trim() : 'I could not format that response. Please try asking again.';
+    }
+  } catch {
+    return 'I could not format that response. Please try asking again.';
+  }
+  return 'I could not format that response. Please try asking again.';
+}
+
 async function answerFromPortfolio(question, { history = [], summary = '', onToken } = {}) {
   if (!vectorStore || !chatModel) throw new Error('RAG service has not been initialized');
 
@@ -415,8 +440,12 @@ async function answerFromPortfolio(question, { history = [], summary = '', onTok
       + `If asked who you are or who owns the portfolio, say you are the AI assistant for ${staticProfileName}’s portfolio. `
       + 'If asked who specifically implemented the assistant, do not guess; say the portfolio does not specify that. '
       + 'Use concise Markdown formatting when it improves clarity: short headings, lists, bold text, and '
-      + 'descriptive Markdown links for URLs present in the portfolio context. For a simple question, use a '
-      + 'natural paragraph. Start directly with the requested information; do not add generic introductions '
+      + 'descriptive Markdown links for URLs present in the portfolio context. '
+      + 'For multiple projects, prefer separate project entries with the name, available description, '
+      + 'technologies, and a clickable live link only when provided; avoid Markdown tables. '
+      + 'Never invent a missing technology or URL. '
+      + 'For a simple question, use a natural paragraph. Start directly with the requested information; '
+      + 'do not add generic introductions '
       + 'such as "Based on the portfolio data".\n\n'
       + `Conversation memory (for reference resolution only):\n${summary || '(none)'}\n\n`
       + `Conversation history (for reference resolution only):\n${fullHistory || '(none)'}\n\n`
@@ -427,16 +456,37 @@ async function answerFromPortfolio(question, { history = [], summary = '', onTok
   let answer;
   if (onToken) {
     const chunks = [];
+    let streamBuffer = '';
+    let streamFormatKnown = false;
     for await (const chunk of await chatModel.stream(messages)) {
       const token = textFromChunk(chunk.content);
       if (!token) continue;
       chunks.push(token);
-      onToken(token);
+      if (streamFormatKnown) {
+        onToken(token);
+        continue;
+      }
+
+      streamBuffer += token;
+      const leadingTrimmed = streamBuffer.trimStart();
+      const possibleJsonPrefix = ['{', '[', '```json'].some((prefix) => (
+        prefix.startsWith(leadingTrimmed.toLowerCase())
+      )) || /^\[\s*$/.test(leadingTrimmed);
+      if (!leadingTrimmed || possibleJsonPrefix) continue;
+
+      if (isJsonModelOutput(leadingTrimmed) || /^```json\b/i.test(leadingTrimmed)) {
+        continue;
+      }
+
+      streamFormatKnown = true;
+      onToken(streamBuffer);
+      streamBuffer = '';
     }
-    answer = chunks.join('').trim();
+    answer = normalizeModelAnswer(chunks.join(''));
+    if (!streamFormatKnown) onToken(answer);
   } else {
     const response = await chatModel.invoke(messages);
-    answer = textFromResponse(response.content);
+    answer = normalizeModelAnswer(textFromResponse(response.content));
   }
   if (!answer) throw new Error('Groq returned an empty RAG answer');
 
