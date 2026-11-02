@@ -41,29 +41,6 @@ export const PROFILE = {
     'CS fundamentals': ['Data Structures and Algorithms', 'DBMS', 'Operating Systems', 'Computer Networks', 'Object-Oriented Programming'],
   },
 
-  // TODO verify: features ko source code se match karo (implemented / planned)
-  projects: [
-    {
-      _id: 'codemaster', slug: 'codemaster', title: 'CodeMaster', category: 'Full-Stack / Coding Platform',
-      description: 'CodeMaster is a college-focused coding platform designed to help students practice programming, participate in contests, compete in coding duels, and collaborate with other learners.',
-      techStack: ['React', 'Node.js', 'Express.js', 'MongoDB', 'Redis', 'Socket.IO', 'Judge0 API', 'Gemini API', 'Cloudinary', 'Docker', 'AWS'],
-      features: ['Role-based access for platform admins, college admins and students', 'College registration and approval workflow', 'Online code execution and evaluation via Judge0 API', 'Real-time chat and coding duels with Socket.IO', 'Public and private contests', 'Problem management and admin dashboard', 'Student discussion board', 'AI-powered coding assistant', 'Pseudocode whiteboard', 'Video solutions via Cloudinary', 'Role-restricted reference solutions', 'Redis-based rate limiting', 'Docker setup and AWS deployment'],
-      githubUrl: '', liveUrl: '',
-    },
-    {
-      _id: 'radar', slug: 'radar', title: 'Radar', category: 'Monitoring / Backend Reliability',
-      description: 'Radar is a project focused on application availability, proactive alerts, and managing idle application resources.',
-      techStack: [], // TODO: source code se confirm karke daalo
-      features: ['Cold-start and sleep scheduling', 'Idle-period management for free-tier resources', 'Telegram notifications when an app goes down', 'Email alerts for downtime', 'Sliding-window rate limiting'],
-      githubUrl: '', liveUrl: '',
-    },
-    {
-      _id: 'agenza', slug: 'agenza', title: 'Agenza', category: 'In progress',
-      description: 'Project details will be added soon.', // PLACEHOLDER: asli description repo se likho
-      techStack: [], features: [], githubUrl: '', liveUrl: '',
-    },
-  ],
-
   lab: {
     title: 'PostgreSQL performance experiments',
     text: 'I am exploring PostgreSQL through hands-on database experiments, large datasets, SQL query optimization, and backend performance testing. My recent learning includes load testing with k6, observing performance metrics with Grafana, and identifying opportunities to improve query execution and response times.',

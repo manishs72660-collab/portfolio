@@ -16,13 +16,10 @@ const useGet = (path, init = []) => {
   return [d, l, err];
 };
 
-// Backend khali ho to ye demo projects dikhenge
-const DEMO = [
-  { _id: 1, title: 'AI SaaS Dashboard', category: 'Full Stack', description: 'Analytics dashboard with auth, charts and subscription billing.', techStack: ['React', 'Node.js', 'MongoDB', 'Tailwind'] },
-  { _id: 2, title: 'E-Commerce Store', category: 'MERN', description: 'Complete shop with cart, payments and admin panel.', techStack: ['React', 'Express', 'MongoDB', 'Redux'] },
-  { _id: 3, title: 'Chat Application', category: 'Real-time', description: 'Realtime messaging app with rooms and online status.', techStack: ['React', 'Socket.io', 'Node.js'] },
-];
-const useProjects = () => { const [d, l] = useGet('/projects'); const a = arr(d); return [a.length || l ? a : DEMO, l]; };
+const useProjects = () => {
+  const [data, loading, error] = useGet('/projects');
+  return [arr(data), loading, error];
+};
 
 // Simple page wrapper
 const Wrap = ({ title, sub, children }) => (
@@ -51,7 +48,7 @@ function Typed() {
 
 export function Home() {
   const [pr] = useGet('/profile', {}); const p = pr?.data || pr || {};
-  const [pj] = useProjects();
+  const [pj, projectsLoading, projectsError] = useProjects();
   return (<>
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,#c9ccd9_0%,#dfe1ec_60%,#f4f5f9_100%)] px-6 pb-16 pt-28 md:flex md:min-h-screen md:items-center md:pb-0">
       <motion.div
@@ -79,7 +76,7 @@ export function Home() {
         <div className="relative z-10 order-3 mx-auto w-full max-w-xs rounded-2xl border border-white/80 bg-white/30 p-5 backdrop-blur">
           {[
             ['Problem Solving', 'Strategist'],
-            ['Featured Projects', '5+ Projects'],
+            ['Projects', projectsLoading ? 'Loading...' : `${pj.length} Projects`],
             ['DSA Practice', '500+ Problems'],
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between border-b border-white/60 py-3 last:border-0">
@@ -114,9 +111,12 @@ export function Home() {
 
     <section className="mx-auto max-w-6xl px-6 py-20">
       <Head title="My Work" sub="Explore my latest projects and creations" />
-      <div className="grid gap-6 md:grid-cols-3">
-        {sortProjectsByCategory(pj).slice(0, 3).map((x, i) => <ProjectCard key={x._id || x.slug} p={x} i={i} />)}
-      </div>
+      {projectsLoading ? <p className="text-slate-500">Loading projects...</p>
+        : projectsError ? <p role="status" className="text-red-600">{projectsError}</p>
+          : pj.length === 0 ? <p className="text-slate-500">No published projects are available yet.</p>
+            : <div className="grid gap-6 md:grid-cols-3">
+              {sortProjectsByCategory(pj).slice(0, 3).map((x, i) => <ProjectCard key={x._id || x.slug} p={x} i={i} />)}
+            </div>}
       <div className="mt-12 text-center">
         <Link to="/projects" className="btn btn-o">See all projects <ArrowRight size={16} /></Link>
       </div>
@@ -127,7 +127,7 @@ export function Home() {
 }
 
 export function Projects() {
-  const [pj, l] = useProjects(); const [q, setQ] = useState(''); const [category, setCategory] = useState('All');
+  const [pj, l, error] = useProjects(); const [q, setQ] = useState(''); const [category, setCategory] = useState('All');
   const categories = ['All', ...[...PROJECT_CATEGORIES, ...pj.map(project => project.category).filter(Boolean)]
     .filter((item, index, items) => items.findIndex(value => value.toLowerCase() === item.toLowerCase()) === index)];
   const list = sortProjectsByCategory(pj
@@ -145,8 +145,9 @@ export function Projects() {
       ))}
     </div>
     <input className="inp mb-8 max-w-sm" placeholder="Search projects or tech..." value={q} onChange={e => setQ(e.target.value)} />
-    {l ? <p className="text-slate-500">Loading...</p>
-      : list.length === 0 ? <p className="text-slate-500">No projects match your search.</p>
+    {l ? <p className="text-slate-500">Loading projects...</p>
+      : error ? <p role="status" className="text-red-600">{error}</p>
+        : list.length === 0 ? <p className="text-slate-500">{pj.length ? 'No projects match your search.' : 'No published projects are available yet.'}</p>
       : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{list.map((x, i) => <ProjectCard key={x._id || x.slug} p={x} i={i} />)}</div>}
   </Wrap>;
 }
