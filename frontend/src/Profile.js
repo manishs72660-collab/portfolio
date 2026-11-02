@@ -12,7 +12,7 @@ export const PROFILE = {
   },
 
   headline: 'Software Engineer | Full-Stack Developer | AI Enthusiast',
-  subtitle: "I'm a BCA student and developer from Patna who enjoys building full-stack applications, exploring AI-powered systems, and improving backend performance.",
+  subtitle: "I'm Manish Singh, a Software Developer focused on backend engineering, MERN stack development, and AI-powered systems. I enjoy building scalable applications, optimizing performance, and solving real-world problems through code.",
   support: 'From interactive web applications to backend performance experiments, I enjoy turning ideas into practical, well-engineered products.',
   status: 'Currently Exploring Backend Performance & AI Integration',
   seo: 'Manish Singh is a BCA student and developer from Bihar, India, exploring full-stack development, backend engineering, AI integration, database optimization, and reliable software systems.',
