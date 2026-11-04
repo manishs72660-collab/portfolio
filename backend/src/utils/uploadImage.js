@@ -20,7 +20,11 @@ function uploadMedia(buffer, folder, resourceType) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({ folder, resource_type: resourceType }, (error, result) => {
       if (error) {
-        return reject(error);
+        const statusCode = error.http_code === 413 ? 413 : 502;
+        const message = statusCode === 413
+          ? 'Cloudinary rejected this file because it is too large'
+          : `Cloudinary ${resourceType} upload failed`;
+        return reject(new AppError(message, statusCode, { expose: true }));
       }
 
       if (!result) {

@@ -97,3 +97,31 @@ export async function api(path, opt = {}) {
   if (!r.ok) throw new Error(j.message || 'Request failed');
   return j;
 }
+
+export function uploadApi(path, { method = 'POST', body }, onProgress) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(method, B + path);
+    request.withCredentials = true;
+    request.upload.addEventListener('progress', event => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
+    });
+    request.addEventListener('load', () => {
+      let result = {};
+      try {
+        result = JSON.parse(request.responseText);
+      } catch {
+        reject(new Error('The server returned an unreadable upload response.'));
+        return;
+      }
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error(result.message || 'Upload request failed.'));
+        return;
+      }
+      resolve(result);
+    });
+    request.addEventListener('error', () => reject(new Error('Upload failed. Check your connection and try again.')));
+    request.addEventListener('abort', () => reject(new Error('Upload was cancelled.')));
+    request.send(body);
+  });
+}

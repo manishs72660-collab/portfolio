@@ -1,7 +1,7 @@
 const Project = require('../models/Project');
 const AppError = require('../utils/AppError');
-const { saveRecordWithImage, deleteOldImage, deleteOldVideo } = require('../utils/imageRecord');
-const { uploadVideo } = require('../utils/uploadImage');
+const { deleteOldImage, deleteOldVideo } = require('../utils/imageRecord');
+const { uploadImage, uploadVideo } = require('../utils/uploadImage');
 const { syncProjectToRag, removeRagSource } = require('../services/ragService');
 const {
   rejectUnknownFields,
@@ -131,16 +131,25 @@ async function createProject(req, res) {
   const body = getBody(req);
   const project = new Project();
   applyProjectFields(project, body, { creating: true });
+  const thumbnail = req.files?.thumbnail?.[0];
   const demoVideo = req.files?.demoVideo?.[0];
+  let uploadedImage;
   let uploadedVideo;
-  if (demoVideo) {
-    uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
-    project.demoVideoUrl = uploadedVideo.url;
-    project.demoVideoPublicId = uploadedVideo.publicId;
-  }
   try {
-    await saveRecordWithImage(project, req.files?.thumbnail?.[0], 'portfolio/projects', 'imageUrl', 'imagePublicId');
+    if (thumbnail) {
+      uploadedImage = await uploadImage(thumbnail.buffer, 'portfolio/projects');
+      project.imageUrl = uploadedImage.url;
+      project.imagePublicId = uploadedImage.publicId;
+    }
+    if (demoVideo) {
+      uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
+      project.demoVideoUrl = uploadedVideo.url;
+      project.demoVideoPublicId = uploadedVideo.publicId;
+      project.demoVideoSizeBytes = demoVideo.size;
+    }
+    await project.save();
   } catch (error) {
+    if (uploadedImage) await deleteOldImage(uploadedImage.publicId);
     if (uploadedVideo) await deleteOldVideo(uploadedVideo.publicId);
     throw error;
   }
@@ -156,25 +165,30 @@ async function updateProject(req, res) {
   const originalImagePublicId = project.imagePublicId;
   const originalVideoPublicId = project.demoVideoPublicId;
   applyProjectFields(project, body);
+  const thumbnail = req.files?.thumbnail?.[0];
   const demoVideo = req.files?.demoVideo?.[0];
+  let uploadedImage;
   let uploadedVideo;
-  if (demoVideo) {
-    uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
-    project.demoVideoUrl = uploadedVideo.url;
-    project.demoVideoPublicId = uploadedVideo.publicId;
-  }
   try {
-    await saveRecordWithImage(
-      project,
-      req.files?.thumbnail?.[0],
-      'portfolio/projects',
-      'imageUrl',
-      'imagePublicId',
-      originalImagePublicId,
-    );
+    if (thumbnail) {
+      uploadedImage = await uploadImage(thumbnail.buffer, 'portfolio/projects');
+      project.imageUrl = uploadedImage.url;
+      project.imagePublicId = uploadedImage.publicId;
+    }
+    if (demoVideo) {
+      uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
+      project.demoVideoUrl = uploadedVideo.url;
+      project.demoVideoPublicId = uploadedVideo.publicId;
+      project.demoVideoSizeBytes = demoVideo.size;
+    }
+    await project.save();
   } catch (error) {
+    if (uploadedImage) await deleteOldImage(uploadedImage.publicId);
     if (uploadedVideo) await deleteOldVideo(uploadedVideo.publicId);
     throw error;
+  }
+  if (uploadedImage && originalImagePublicId && originalImagePublicId !== uploadedImage.publicId) {
+    await deleteOldImage(originalImagePublicId);
   }
   if (uploadedVideo && originalVideoPublicId && originalVideoPublicId !== uploadedVideo.publicId) {
     await deleteOldVideo(originalVideoPublicId);

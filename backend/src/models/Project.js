@@ -10,6 +10,7 @@ const projectSchema = new mongoose.Schema(
     imagePublicId: { type: String, default: '' },
     demoVideoUrl: { type: String, default: '' },
     demoVideoPublicId: { type: String, default: '' },
+    demoVideoSizeBytes: { type: Number, default: 0 },
     technologies: [{ type: String, trim: true }],
     category: { type: String, default: 'Other', trim: true },
     isFeatured: { type: Boolean, default: false },

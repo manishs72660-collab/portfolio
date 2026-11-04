@@ -1,6 +1,8 @@
 const multer = require('multer');
 const AppError = require('../utils/AppError');
 
+const MAX_PROJECT_MEDIA_SIZE = 100 * 1024 * 1024;
+
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -15,7 +17,7 @@ const imageUpload = multer({
 
 const projectUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024, files: 2 },
+  limits: { fileSize: MAX_PROJECT_MEDIA_SIZE, files: 2 },
   fileFilter(req, file, callback) {
     if (file.fieldname === 'thumbnail' && !file.mimetype.startsWith('image/')) {
       return callback(new AppError('Project thumbnail must be an image', 400));
@@ -50,6 +52,9 @@ function validateProjectMedia(req, res, next) {
 
   if (thumbnail && thumbnail.size > 5 * 1024 * 1024) {
     return next(new AppError('Project thumbnail must be 5 MB or smaller', 413));
+  }
+  if (demoVideo && demoVideo.size > MAX_PROJECT_MEDIA_SIZE) {
+    return next(new AppError('Demo video must be 100 MB or smaller', 413));
   }
   if (thumbnail) {
     const buffer = thumbnail.buffer;

@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, arr } from './api.js';
+import { api, arr, uploadApi } from './api.js';
 import { LoaderCircle, Pencil, X } from 'lucide-react';
 import { PROJECT_CATEGORIES } from './projectCategories.js';
 
 const box = 'inp';
 const primary = 'w-full rounded-lg bg-slate-800 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700';
+const MAX_PROJECT_VIDEO_SIZE = 100 * 1024 * 1024;
+const MAX_PROJECT_IMAGE_SIZE = 5 * 1024 * 1024;
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return 'Size unavailable';
+  const units = ['Bytes', 'KB', 'MB', 'GB'];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const size = bytes / (1024 ** unitIndex);
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
 
 function Login({ onDone }) {
   const [f, setF] = useState({ email: '', password: '' }); const [err, setErr] = useState('');
@@ -32,6 +42,8 @@ function Manager({ kind }) {
   const [submitting, setSubmitting] = useState(false);
   const [hasSelectedFile, setHasSelectedFile] = useState(false);
   const [hasSelectedVideo, setHasSelectedVideo] = useState(false);
+  const [selectedVideoSize, setSelectedVideoSize] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const submittingRef = useRef(false);
   const load = async () => {
     try {
@@ -51,24 +63,30 @@ function Manager({ kind }) {
       const form = e.currentTarget;
       const body = new FormData(form);
       body.set('isPublished', form.elements.isPublished.checked ? 'true' : 'false');
+      const thumbnail = body.get(file);
+      const demoVideo = isP ? body.get('demoVideo') : null;
+      if (thumbnail?.size > MAX_PROJECT_IMAGE_SIZE) throw new Error('Image must be 5 MB or smaller.');
+      if (demoVideo?.size > MAX_PROJECT_VIDEO_SIZE) throw new Error('Demo video must be 100 MB or smaller.');
       const slug = body.get('slug');
       if (!slug?.trim()) body.delete('slug');
       if (isP) body.set('isFeatured', form.elements.isFeatured.checked ? 'true' : 'false');
 
-      await api(editing ? `/${kind}/${editing._id}` : `/${kind}`, {
+      await uploadApi(editing ? `/${kind}/${editing._id}` : `/${kind}`, {
         method: editing ? 'PATCH' : 'POST',
         body,
-      });
+      }, setUploadProgress);
       setMsg(editing ? `${isP ? 'Project' : 'Blog'} updated successfully.` : `${isP ? 'Project' : 'Blog'} created successfully.`);
       setEditing(null);
       setHasSelectedFile(false);
       setHasSelectedVideo(false);
+      setSelectedVideoSize(0);
       await load();
     } catch (error) {
       setMsg(error.message);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
   const togglePublished = async item => {
@@ -88,6 +106,7 @@ function Manager({ kind }) {
     setMsg('');
     setHasSelectedFile(false);
     setHasSelectedVideo(false);
+    setSelectedVideoSize(0);
     setEditing(item);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -98,7 +117,7 @@ function Manager({ kind }) {
       <form key={editing?._id || 'create'} onSubmit={save} className="glass space-y-3 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-slate-900">{editing ? 'Edit' : 'Add'} {isP ? 'Project' : 'Blog'}</h3>
-          {editing && <button type="button" onClick={() => { setEditing(null); setMsg(''); setHasSelectedFile(false); setHasSelectedVideo(false); }} className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"><X size={15} /> Cancel</button>}
+          {editing && <button type="button" onClick={() => { setEditing(null); setMsg(''); setHasSelectedFile(false); setHasSelectedVideo(false); setSelectedVideoSize(0); }} className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"><X size={15} /> Cancel</button>}
         </div>
         <fieldset disabled={submitting} className="space-y-3 disabled:opacity-70">
           <input name="title" required className={box} placeholder="Title" defaultValue={editing?.title || ''} />
@@ -134,20 +153,41 @@ function Manager({ kind }) {
           </div>}
           <label className="block text-sm font-medium text-slate-700">
             {editing ? 'Replace image (optional)' : 'Image (optional)'}
-            <input type="file" name={file} accept="image/png,image/jpeg,image/gif,image/webp" className="mt-2 block w-full text-sm text-slate-600" onChange={e => setHasSelectedFile(Boolean(e.target.files?.length))} />
+            <input type="file" name={file} accept="image/png,image/jpeg,image/gif,image/webp" className="mt-2 block w-full text-sm text-slate-600" onChange={e => {
+              const selected = e.target.files?.[0];
+              setHasSelectedFile(Boolean(selected));
+              setMsg(selected && selected.size > MAX_PROJECT_IMAGE_SIZE ? 'Image must be 5 MB or smaller.' : '');
+            }} />
           </label>
           {isP && <>
             {currentVideo && <div className="space-y-2">
               <p className="text-xs font-medium text-slate-600">Current demo video{hasSelectedVideo ? ' (will be replaced after save)' : ''}</p>
               <video src={currentVideo} controls preload="metadata" className="max-h-64 w-full rounded-lg border border-slate-200 bg-slate-950" />
+              <p className="text-xs text-slate-500">Uploaded size: {formatFileSize(editing?.demoVideoSizeBytes)}</p>
             </div>}
             <label className="block text-sm font-medium text-slate-700">
               {editing ? 'Replace demo video (optional)' : 'Demo video (optional)'}
-              <input type="file" name="demoVideo" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" className="mt-2 block w-full text-sm text-slate-600" onChange={e => setHasSelectedVideo(Boolean(e.target.files?.length))} />
-              <span className="mt-1 block text-xs font-normal text-slate-500">MP4, WebM, or MOV; maximum 50 MB.</span>
+              <input type="file" name="demoVideo" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" className="mt-2 block w-full text-sm text-slate-600" onChange={e => {
+                const selected = e.target.files?.[0];
+                setHasSelectedVideo(Boolean(selected));
+                setSelectedVideoSize(selected?.size || 0);
+                setMsg(selected && selected.size > MAX_PROJECT_VIDEO_SIZE ? 'Demo video must be 100 MB or smaller.' : '');
+              }} />
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                MP4, WebM, or MOV; maximum 100 MB.
+                {selectedVideoSize > 0 && ` Selected size: ${formatFileSize(selectedVideoSize)}.`}
+              </span>
             </label>
           </>}
           {msg && <p role="status" className={`text-xs ${msg.includes('successfully') ? 'text-green-700' : 'text-red-600'}`}>{msg}</p>}
+          {submitting && (hasSelectedFile || hasSelectedVideo) && uploadProgress !== null && <div className="space-y-1" role="status">
+            <div className="h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label="Media upload progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={uploadProgress}>
+              <div className="h-full rounded-full bg-slate-700 transition-[width] duration-150" style={{ width: `${uploadProgress}%` }} />
+            </div>
+            <p className="text-xs text-slate-600">
+              {uploadProgress === 100 ? 'Saving media to Cloudinary...' : `Sending media: ${uploadProgress}%`}
+            </p>
+          </div>}
           <button disabled={submitting} className={`${primary} flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60`}>
             {submitting && <LoaderCircle size={16} className="animate-spin" />}
             {submitting ? (hasSelectedFile || hasSelectedVideo ? 'Uploading media...' : 'Saving...') : editing ? 'Save changes' : 'Create'}
@@ -164,6 +204,7 @@ function Manager({ kind }) {
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-slate-800">{i.title}</p>
               <span className="text-xs text-slate-500">{i.isPublished ? 'Published' : 'Draft'}</span>
+              {isP && i.demoVideoUrl && <p className="text-xs text-slate-500">Video: {formatFileSize(i.demoVideoSizeBytes)}</p>}
             </div>
             <div className="flex shrink-0 flex-wrap justify-end gap-3">
               <button onClick={() => startEditing(i)} className="inline-flex items-center gap-1 text-xs text-slate-700 underline"><Pencil size={12} /> Edit</button>

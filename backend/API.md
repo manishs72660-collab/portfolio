@@ -20,7 +20,7 @@ approved frontend origin can use it.
 Admin endpoints require the HTTP-only `adminToken` cookie issued by
 `POST /api/v1/auth/login`. Send JSON for normal requests. For media upload requests, send `multipart/form-data` with the documented file
 field. Images are limited to 5 MB and PNG, JPEG, GIF, or WebP; project demo
-videos are limited to 50 MB and MP4, WebM, MOV, or M4V.
+videos are limited to 100 MB and MP4, WebM, MOV, or M4V.
 
 ## Contact messages
 
@@ -70,8 +70,9 @@ and `isPublished`. Set `thumbnail` as the multipart file field to upload a
 project image and optionally set `demoVideo` to upload its demo video to
 Cloudinary; media URLs cannot be supplied in JSON. The API returns the generated
 image URL as `imageUrl` and video URL as `demoVideoUrl`, storing their Cloudinary
-public IDs internally. Replacing or deleting a project also cleans up its
-previous uploaded media. The admin form provides `Full Stack`, `Frontend`, `Backend`,
+public IDs internally. Video uploads are sent to Cloudinary after the thumbnail
+and return the uploaded file size as `demoVideoSizeBytes`. Replacing or deleting
+a project also cleans up its previous uploaded media. The admin form provides `Full Stack`, `Frontend`, `Backend`,
 `AI`, and `Chrome Extension` category choices. New projects are unpublished by
 default.
 
