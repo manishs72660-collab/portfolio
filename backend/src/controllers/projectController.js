@@ -127,10 +127,21 @@ function applyProjectFields(project, body, { creating = false } = {}) {
   if (githubUrl !== undefined) project.repositoryUrl = parseUrl(githubUrl, 'githubUrl');
 }
 
+async function validateProjectBeforeUpload(project, excludeProjectId) {
+  await project.validate();
+
+  const slugFilter = { slug: project.slug };
+  if (excludeProjectId) slugFilter._id = { $ne: excludeProjectId };
+  if (await Project.exists(slugFilter)) {
+    throw new AppError(`A project with the slug "${project.slug}" already exists`, 409);
+  }
+}
+
 async function createProject(req, res) {
   const body = getBody(req);
   const project = new Project();
   applyProjectFields(project, body, { creating: true });
+  await validateProjectBeforeUpload(project);
   const thumbnail = req.files?.thumbnail?.[0];
   const demoVideo = req.files?.demoVideo?.[0];
   let uploadedImage;
@@ -165,6 +176,7 @@ async function updateProject(req, res) {
   const originalImagePublicId = project.imagePublicId;
   const originalVideoPublicId = project.demoVideoPublicId;
   applyProjectFields(project, body);
+  await validateProjectBeforeUpload(project, project._id);
   const thumbnail = req.files?.thumbnail?.[0];
   const demoVideo = req.files?.demoVideo?.[0];
   let uploadedImage;
