@@ -3,6 +3,14 @@ const { env } = require('../config/env');
 const AppError = require('./AppError');
 
 function uploadImage(buffer, folder = 'portfolio') {
+  return uploadMedia(buffer, folder, 'image');
+}
+
+function uploadVideo(buffer, folder = 'portfolio') {
+  return uploadMedia(buffer, folder, 'video');
+}
+
+function uploadMedia(buffer, folder, resourceType) {
   const { cloudName, apiKey, apiSecret } = env.cloudinary;
 
   if (!cloudName || !apiKey || !apiSecret) {
@@ -10,7 +18,7 @@ function uploadImage(buffer, folder = 'portfolio') {
   }
 
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({ folder }, (error, result) => {
+    const stream = cloudinary.uploader.upload_stream({ folder, resource_type: resourceType }, (error, result) => {
       if (error) {
         return reject(error);
       }
@@ -29,16 +37,21 @@ function uploadImage(buffer, folder = 'portfolio') {
   });
 }
 
-async function deleteImage(publicId) {
+async function deleteMedia(publicId, resourceType = 'image') {
   if (!publicId) {
     return;
   }
 
-  const result = await cloudinary.uploader.destroy(publicId);
+  const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
 
   if (result.result !== 'ok' && result.result !== 'not found') {
-    throw new Error(`Cloudinary could not delete image "${publicId}"`);
+    throw new Error(`Cloudinary could not delete ${resourceType} "${publicId}"`);
   }
 }
 
-module.exports = { uploadImage, deleteImage };
+module.exports = {
+  uploadImage,
+  uploadVideo,
+  deleteImage: publicId => deleteMedia(publicId, 'image'),
+  deleteVideo: publicId => deleteMedia(publicId, 'video'),
+};

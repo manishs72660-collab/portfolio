@@ -1,6 +1,7 @@
 const Project = require('../models/Project');
 const AppError = require('../utils/AppError');
-const { saveRecordWithImage, deleteOldImage } = require('../utils/imageRecord');
+const { saveRecordWithImage, deleteOldImage, deleteOldVideo } = require('../utils/imageRecord');
+const { uploadVideo } = require('../utils/uploadImage');
 const { syncProjectToRag, removeRagSource } = require('../services/ragService');
 const {
   rejectUnknownFields,
@@ -130,26 +131,54 @@ async function createProject(req, res) {
   const body = getBody(req);
   const project = new Project();
   applyProjectFields(project, body, { creating: true });
-  await saveRecordWithImage(project, req.file, 'portfolio/projects', 'imageUrl', 'imagePublicId');
+  const demoVideo = req.files?.demoVideo?.[0];
+  let uploadedVideo;
+  if (demoVideo) {
+    uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
+    project.demoVideoUrl = uploadedVideo.url;
+    project.demoVideoPublicId = uploadedVideo.publicId;
+  }
+  try {
+    await saveRecordWithImage(project, req.files?.thumbnail?.[0], 'portfolio/projects', 'imageUrl', 'imagePublicId');
+  } catch (error) {
+    if (uploadedVideo) await deleteOldVideo(uploadedVideo.publicId);
+    throw error;
+  }
   await syncProjectToRag(project);
   res.status(201).json({ success: true, data: project });
 }
 
 async function updateProject(req, res) {
   const body = getBody(req);
-  if (!Object.keys(body).length && !req.file) throw new AppError('Provide at least one field or image to update', 400);
+  if (!Object.keys(body).length && !Object.keys(req.files || {}).length) throw new AppError('Provide at least one field or media file to update', 400);
   const project = await Project.findById(parseId(req.params.id, 'project ID'));
   if (!project) throw new AppError('Project not found', 404);
   const originalImagePublicId = project.imagePublicId;
+  const originalVideoPublicId = project.demoVideoPublicId;
   applyProjectFields(project, body);
-  await saveRecordWithImage(
-    project,
-    req.file,
-    'portfolio/projects',
-    'imageUrl',
-    'imagePublicId',
-    originalImagePublicId,
-  );
+  const demoVideo = req.files?.demoVideo?.[0];
+  let uploadedVideo;
+  if (demoVideo) {
+    uploadedVideo = await uploadVideo(demoVideo.buffer, 'portfolio/projects/videos');
+    project.demoVideoUrl = uploadedVideo.url;
+    project.demoVideoPublicId = uploadedVideo.publicId;
+  }
+  try {
+    await saveRecordWithImage(
+      project,
+      req.files?.thumbnail?.[0],
+      'portfolio/projects',
+      'imageUrl',
+      'imagePublicId',
+      originalImagePublicId,
+    );
+  } catch (error) {
+    if (uploadedVideo) await deleteOldVideo(uploadedVideo.publicId);
+    throw error;
+  }
+  if (uploadedVideo && originalVideoPublicId && originalVideoPublicId !== uploadedVideo.publicId) {
+    await deleteOldVideo(originalVideoPublicId);
+  }
   await syncProjectToRag(project);
   res.json({ success: true, data: project });
 }
@@ -158,8 +187,9 @@ async function deleteProject(req, res) {
   const project = await Project.findById(parseId(req.params.id, 'project ID'));
   if (!project) throw new AppError('Project not found', 404);
   await project.deleteOne();
-  await removeRagSource(`project:${project.id}`);
   await deleteOldImage(project.imagePublicId);
+  await deleteOldVideo(project.demoVideoPublicId);
+  await removeRagSource(`project:${project.id}`);
   res.json({ success: true, message: 'Project deleted successfully' });
 }
 

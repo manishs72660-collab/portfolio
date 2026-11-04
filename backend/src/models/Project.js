@@ -8,6 +8,8 @@ const projectSchema = new mongoose.Schema(
     description: { type: String, required: true, trim: true },
     imageUrl: { type: String, default: '' },
     imagePublicId: { type: String, default: '' },
+    demoVideoUrl: { type: String, default: '' },
+    demoVideoPublicId: { type: String, default: '' },
     technologies: [{ type: String, trim: true }],
     category: { type: String, default: 'Other', trim: true },
     isFeatured: { type: Boolean, default: false },

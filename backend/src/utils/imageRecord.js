@@ -1,4 +1,4 @@
-const { deleteImage, uploadImage } = require('./uploadImage');
+const { deleteImage, deleteVideo, uploadImage } = require('./uploadImage');
 
 async function deleteOldImage(publicId) {
   if (!publicId) return;
@@ -7,6 +7,16 @@ async function deleteOldImage(publicId) {
     await deleteImage(publicId);
   } catch (error) {
     console.error(`Image cleanup failed for "${publicId}":`, error.message);
+  }
+}
+
+async function deleteOldVideo(publicId) {
+  if (!publicId) return;
+
+  try {
+    await deleteVideo(publicId);
+  } catch (error) {
+    console.error(`Video cleanup failed for "${publicId}":`, error.message);
   }
 }
 
@@ -34,4 +44,4 @@ async function saveRecordWithImage(record, file, folder, urlField, publicIdField
   return record;
 }
 
-module.exports = { saveRecordWithImage, deleteOldImage };
+module.exports = { saveRecordWithImage, deleteOldImage, deleteOldVideo };

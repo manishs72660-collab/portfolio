@@ -31,6 +31,7 @@ function Manager({ kind }) {
   const [editing, setEditing] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasSelectedFile, setHasSelectedFile] = useState(false);
+  const [hasSelectedVideo, setHasSelectedVideo] = useState(false);
   const submittingRef = useRef(false);
   const load = async () => {
     try {
@@ -61,6 +62,7 @@ function Manager({ kind }) {
       setMsg(editing ? `${isP ? 'Project' : 'Blog'} updated successfully.` : `${isP ? 'Project' : 'Blog'} created successfully.`);
       setEditing(null);
       setHasSelectedFile(false);
+      setHasSelectedVideo(false);
       await load();
     } catch (error) {
       setMsg(error.message);
@@ -85,16 +87,18 @@ function Manager({ kind }) {
   const startEditing = item => {
     setMsg('');
     setHasSelectedFile(false);
+    setHasSelectedVideo(false);
     setEditing(item);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const currentImage = editing && (isP ? editing.imageUrl : editing.coverImageUrl);
+  const currentVideo = isP && editing?.demoVideoUrl;
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <form key={editing?._id || 'create'} onSubmit={save} className="glass space-y-3 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-slate-900">{editing ? 'Edit' : 'Add'} {isP ? 'Project' : 'Blog'}</h3>
-          {editing && <button type="button" onClick={() => { setEditing(null); setMsg(''); setHasSelectedFile(false); }} className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"><X size={15} /> Cancel</button>}
+          {editing && <button type="button" onClick={() => { setEditing(null); setMsg(''); setHasSelectedFile(false); setHasSelectedVideo(false); }} className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"><X size={15} /> Cancel</button>}
         </div>
         <fieldset disabled={submitting} className="space-y-3 disabled:opacity-70">
           <input name="title" required className={box} placeholder="Title" defaultValue={editing?.title || ''} />
@@ -132,10 +136,21 @@ function Manager({ kind }) {
             {editing ? 'Replace image (optional)' : 'Image (optional)'}
             <input type="file" name={file} accept="image/png,image/jpeg,image/gif,image/webp" className="mt-2 block w-full text-sm text-slate-600" onChange={e => setHasSelectedFile(Boolean(e.target.files?.length))} />
           </label>
+          {isP && <>
+            {currentVideo && <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-600">Current demo video{hasSelectedVideo ? ' (will be replaced after save)' : ''}</p>
+              <video src={currentVideo} controls preload="metadata" className="max-h-64 w-full rounded-lg border border-slate-200 bg-slate-950" />
+            </div>}
+            <label className="block text-sm font-medium text-slate-700">
+              {editing ? 'Replace demo video (optional)' : 'Demo video (optional)'}
+              <input type="file" name="demoVideo" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" className="mt-2 block w-full text-sm text-slate-600" onChange={e => setHasSelectedVideo(Boolean(e.target.files?.length))} />
+              <span className="mt-1 block text-xs font-normal text-slate-500">MP4, WebM, or MOV; maximum 50 MB.</span>
+            </label>
+          </>}
           {msg && <p role="status" className={`text-xs ${msg.includes('successfully') ? 'text-green-700' : 'text-red-600'}`}>{msg}</p>}
           <button disabled={submitting} className={`${primary} flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60`}>
             {submitting && <LoaderCircle size={16} className="animate-spin" />}
-            {submitting ? (hasSelectedFile ? 'Uploading media...' : 'Saving...') : editing ? 'Save changes' : 'Create'}
+            {submitting ? (hasSelectedFile || hasSelectedVideo ? 'Uploading media...' : 'Saving...') : editing ? 'Save changes' : 'Create'}
           </button>
         </fieldset>
       </form>

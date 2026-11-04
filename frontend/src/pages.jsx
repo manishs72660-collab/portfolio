@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, GraduationCap, ArrowLeft, Github, Code2, ExternalLink, Flame, Trophy, LoaderCircle } from 'lucide-react';
+import { ArrowRight, GraduationCap, ArrowLeft, Github, Code2, ExternalLink, Flame, Trophy, LoaderCircle, Play, X } from 'lucide-react';
 import { api, arr } from './api.js';
 import { TechStack, ProjectCard, Contact, Avatar, Head } from './components.jsx';
 import { PROFILE } from './Profile.js';
@@ -161,6 +161,7 @@ export function ProjectDetail() {
   const image = p.imageUrl || p.thumbnail || p.image || p.coverImageUrl;
   const technologies = p.technologies || p.techStack || [];
   const [imageFailed, setImageFailed] = useState(false);
+  const [showDemoVideo, setShowDemoVideo] = useState(false);
 
   if (loading) return <Wrap title="Loading project..." sub="Fetching project details" />;
   if (error) return <Wrap title="Project unavailable" sub={error}>
@@ -183,11 +184,18 @@ export function ProjectDetail() {
             <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">{p.title}</h2>
             {p.createdAt && <p className="mt-2 text-sm text-slate-500">Added {new Date(p.createdAt).toLocaleDateString()}</p>}
           </div>
-          {(live || gh) && <div className="flex flex-wrap gap-3">
+          {(live || gh || p.demoVideoUrl) && <div className="flex flex-wrap gap-3">
+            {p.demoVideoUrl && <button type="button" className="btn" aria-expanded={showDemoVideo} aria-controls="project-demo-video" onClick={() => setShowDemoVideo(!showDemoVideo)}>
+              {showDemoVideo ? <X size={15} /> : <Play size={15} />}
+              {showDemoVideo ? 'Close Demo' : 'Watch Demo'}
+            </button>}
             {live && <a className="btn" href={live} target="_blank" rel="noreferrer">Live Demo <ExternalLink size={15} /></a>}
             {gh && <a className="btn btn-o" href={gh} target="_blank" rel="noreferrer"><Github size={15} /> GitHub <ExternalLink size={14} /></a>}
           </div>}
         </div>
+        {showDemoVideo && p.demoVideoUrl && <div id="project-demo-video" className="mt-7 overflow-hidden rounded-2xl bg-slate-950">
+          <video src={p.demoVideoUrl} controls autoPlay playsInline preload="metadata" aria-label={`${p.title} demo video`} className="aspect-video w-full" />
+        </div>}
         {technologies.length > 0 && <div className="mt-6">
           <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Built with</h3>
           <div className="mt-3 flex flex-wrap gap-2">

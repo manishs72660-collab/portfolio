@@ -10,7 +10,7 @@ if (cloudName && apiKey && apiSecret) {
     api_secret: apiSecret,
   });
 } else {
-  console.warn('Cloudinary is not configured; image uploads are disabled');
+  console.warn('Cloudinary is not configured; media uploads are disabled');
 }
 
 module.exports = cloudinary;

@@ -134,14 +134,13 @@ const S = n => `https://cdn.simpleicons.org/${n}`;
 export const TECH = [
   ['Frontend', 'React', 'UI library', D('react')], ['Frontend', 'Next.js', 'React framework', D('nextjs')],
   ['Frontend', 'JavaScript', 'Language of the web', D('javascript')], ['Frontend', 'TypeScript', 'Typed JavaScript', D('typescript')],
-  ['Frontend', 'HTML5', 'Markup', D('html5')], ['Frontend', 'CSS3', 'Styling', D('css3')],
   ['Frontend', 'Tailwind CSS', 'Utility-first CSS', D('tailwindcss')], ['Frontend', 'Redux', 'State management', D('redux')],
   ['Backend', 'Node.js', 'JS runtime', D('nodejs')], ['Backend', 'Express.js', 'Web framework', D('express')],
   ['Backend', 'JWT', 'Authentication', 'https://cdn.jsdelivr.net/npm/simple-icons@11/icons/jsonwebtokens.svg'], ['Backend', 'REST API', 'API design', D('fastapi')],
   ['Database', 'MongoDB', 'NoSQL database', D('mongodb')], ['Database', 'Mongoose', 'MongoDB ODM', D('mongoose')],
   ['Database', 'Supabase', 'Open-source backend platform', S('supabase')],
   ['Tools', 'Git', 'Version control', D('git')], ['Tools', 'GitHub', 'Code hosting', D('github')],
-  ['Tools', 'Postman', 'API testing', D('postman')], ['Tools', 'Vite', 'Build tool', D('vitejs')],
+  ['Tools', 'Postman', 'API testing', D('postman')],
   ['Tools', 'Docker', 'Containers', D('docker')], ['Tools', 'Vercel', 'Deployment', D('vercel')],
   ['Tools', 'Nginx', 'Web server and reverse proxy', S('nginx')],
   ['Tools', 'Grafana', 'Observability and dashboards', S('grafana')],
@@ -192,15 +191,15 @@ export function TechStack() {
               initial={{ opacity: 0, scale: 0.85, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85 }}
               transition={{ delay: k * 0.025, duration: 0.45, ease: EASE }}
               whileHover={{ y: -8 }} whileTap={{ scale: 0.97 }} onMouseMove={spot}
-              className="glass group relative overflow-hidden rounded-2xl p-5 text-center transition-all duration-300 hover:border-slate-900 hover:shadow-xl hover:shadow-slate-900/10">
+              className="glass group relative overflow-hidden rounded-2xl p-4 text-center transition-all duration-300 hover:border-slate-900 hover:shadow-xl hover:shadow-slate-900/10">
               <Spotlight />
               {/* upar ki category tag */}
               <span className="absolute right-3 top-3 text-[9px] font-semibold uppercase tracking-widest text-slate-300 transition-colors group-hover:text-slate-500">{cat}</span>
               {/* neeche se aati hui black line */}
               <span className="absolute inset-x-0 bottom-0 h-[3px] origin-left scale-x-0 bg-slate-900 transition-transform duration-500 group-hover:scale-x-100" />
-              <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-100 transition-all duration-300 group-hover:rotate-6 group-hover:bg-white group-hover:ring-slate-200">
+              <div className="relative mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-100 transition-all duration-300 group-hover:rotate-6 group-hover:bg-white group-hover:ring-slate-200">
                 <img src={i} alt={n} onError={e => (e.target.style.display = 'none')}
-                  className="h-9 w-9 object-contain grayscale transition duration-300 group-hover:scale-110 group-hover:grayscale-0" />
+                  className="h-7 w-7 object-contain grayscale transition duration-300 group-hover:scale-110 group-hover:grayscale-0" />
               </div>
               <p className="relative mt-4 font-display font-semibold text-slate-900">{n}</p>
               <p className="relative mt-0.5 text-xs text-slate-500">{d}</p>
