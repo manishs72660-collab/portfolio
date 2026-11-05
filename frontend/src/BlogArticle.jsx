@@ -1,127 +1,8 @@
-import { Children, cloneElement, isValidElement, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, Check, Clock3, Copy } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
-import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
-import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
-import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
-import python from 'react-syntax-highlighter/dist/esm/languages/prism/python';
-import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp';
-import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
-import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
-import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
-import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql';
-import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
+import { ArrowLeft, CalendarDays, Clock3 } from 'lucide-react';
 import { api } from './api.js';
-
-const codeLanguages = {
-  javascript,
-  js: javascript,
-  typescript,
-  ts: typescript,
-  jsx,
-  tsx,
-  python,
-  py: python,
-  cpp,
-  'c++': cpp,
-  json,
-  bash,
-  sh: bash,
-  shell: bash,
-  yaml,
-  yml: yaml,
-  sql,
-  html: markup,
-  xml: markup,
-  markup,
-};
-Object.entries(codeLanguages).forEach(([name, language]) => SyntaxHighlighter.registerLanguage(name, language));
-
-const codeTheme = {
-  'code[class*="language-"]': {
-    color: '#e2e8f0',
-    fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace',
-    fontSize: '0.8125rem',
-    lineHeight: '1.8',
-    whiteSpace: 'pre',
-  },
-  'pre[class*="language-"]': { margin: 0, background: 'transparent', overflow: 'visible' },
-  comment: { color: '#94a3b8', fontStyle: 'italic' },
-  keyword: { color: '#c4b5fd' },
-  string: { color: '#86efac' },
-  function: { color: '#7dd3fc' },
-  number: { color: '#fbbf24' },
-  boolean: { color: '#fbbf24' },
-  operator: { color: '#f8fafc' },
-  punctuation: { color: '#cbd5e1' },
-  property: { color: '#7dd3fc' },
-  'class-name': { color: '#67e8f9' },
-};
-
-const languageLabels = {
-  javascript: 'JavaScript', js: 'JavaScript', typescript: 'TypeScript', ts: 'TypeScript',
-  jsx: 'JSX', tsx: 'TSX', python: 'Python', py: 'Python', cpp: 'C++', 'c++': 'C++',
-  json: 'JSON', bash: 'Bash', sh: 'Shell', shell: 'Shell', yaml: 'YAML', yml: 'YAML',
-  sql: 'SQL', html: 'HTML', xml: 'XML', markup: 'Markup',
-};
-
-function MarkdownCode({ className = '', children, isBlock = false }) {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState('');
-  const source = String(children).replace(/\n$/, '');
-  const language = className.match(/language-([\w+#-]+)/)?.[1]?.toLowerCase() || '';
-
-  if (!isBlock) return <code className="blog-inline-code">{children}</code>;
-
-  const copyCode = async () => {
-    setCopyError('');
-    try {
-      await navigator.clipboard.writeText(source);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch (error) {
-      setCopyError(error instanceof Error ? 'Copy unavailable in this browser.' : 'Unable to copy code.');
-    }
-  };
-  const lines = source.split('\n');
-
-  return (
-    <div className="blog-code-block">
-      <div className="blog-code-toolbar">
-        <span className="blog-code-language">{languageLabels[language] || (language ? language.toUpperCase() : 'Code')}</span>
-        <div className="flex items-center gap-3">
-          {copyError && <span className="text-xs text-rose-300" role="status">{copyError}</span>}
-          <button type="button" onClick={copyCode} className="blog-copy-button" aria-label={copied ? 'Code copied' : 'Copy code'}>
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
-        </div>
-      </div>
-      <div className="blog-code-scroll">
-        {codeLanguages[language] ? (
-          <SyntaxHighlighter
-            language={language}
-            style={codeTheme}
-            showLineNumbers
-            lineNumberStyle={{ color: '#64748b', minWidth: '2.75rem', paddingRight: '1rem', textAlign: 'right' }}
-            customStyle={{ margin: 0, padding: '1rem 1.25rem', background: 'transparent' }}
-            codeTagProps={{ style: { fontFamily: 'inherit' } }}
-          >
-            {source}
-          </SyntaxHighlighter>
-        ) : (
-          <pre className="blog-plain-code" aria-label="Code snippet">
-            {lines.map((line, index) => <span className="blog-plain-code-line" key={index}>{line || ' '}</span>)}
-          </pre>
-        )}
-      </div>
-    </div>
-  );
-}
+import MarkdownRenderer from './MarkdownRenderer.jsx';
 
 function getArticleHeadings(content) {
   const seen = new Map();
@@ -152,12 +33,6 @@ function articleReadingTime(post) {
   if (Number.isFinite(post.readingTime) && post.readingTime > 0) return post.readingTime;
   const words = (post.content || '').trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 200));
-}
-
-function getText(node) {
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map(getText).join('');
-  return isValidElement(node) ? getText(node.props.children) : '';
 }
 
 function useBlogPost(slug) {
@@ -191,21 +66,6 @@ export default function BlogArticle() {
   const headings = getArticleHeadings(content);
   let headingIndex = 0;
   const articleComponents = {
-    pre: ({ children }) => Children.map(children, child => isValidElement(child) ? cloneElement(child, { isBlock: true }) : child),
-    code: MarkdownCode,
-    blockquote: ({ children }) => {
-      const callout = getText(children).match(/^\s*\[!(NOTE|TIP|WARNING|IMPORTANT)\]\s*/i)?.[1]?.toLowerCase();
-      const blockquoteChildren = callout
-        ? Children.map(children, child => {
-          if (!isValidElement(child) || typeof child.props.children !== 'string') return child;
-          return cloneElement(child, {}, child.props.children.replace(/^\s*\[!(NOTE|TIP|WARNING|IMPORTANT)\]\s*/i, ''));
-        })
-        : children;
-      return <blockquote data-callout={callout || undefined}>
-        {callout && <p className="blog-callout-label">{callout}</p>}
-        {blockquoteChildren}
-      </blockquote>;
-    },
     h2: ({ children }) => {
       const heading = headings[headingIndex++];
       return <h2 id={heading?.id} className="scroll-mt-28">{children}</h2>;
@@ -238,7 +98,7 @@ export default function BlogArticle() {
 
       <div className={`mx-auto mt-10 grid min-w-0 gap-10 ${headings.length > 2 ? 'max-w-6xl lg:grid-cols-[minmax(0,1fr)_14rem]' : 'max-w-3xl'}`}>
         <article className="blog-prose min-w-0">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={articleComponents}>{content}</ReactMarkdown>
+          <MarkdownRenderer components={articleComponents}>{content}</MarkdownRenderer>
         </article>
         {headings.length > 2 && <aside className="min-w-0 lg:order-last">
           <nav aria-label="Table of contents" className="lg:sticky lg:top-28">

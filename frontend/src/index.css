@@ -285,6 +285,7 @@
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace !important;
 }
 .blog-code-scroll code { font-family: inherit !important; }
+.blog-code-scroll .linenumber { font-style: normal !important; vertical-align: top; }
 .blog-plain-code {
   margin: 0;
   padding: 1rem 1.25rem;
