@@ -1,6 +1,35 @@
+import { store, cacheResponse, invalidateCache } from './store.js';
+
 const API_ORIGIN = import.meta.env.VITE_API_URL || 'https://portfolio-3wxj.onrender.com';
 const B = `${API_ORIGIN.replace(/\/$/, '')}/api/v1`;
 export const arr = d => (Array.isArray(d) ? d : d?.data || d?.projects || d?.blogs || []);
+const inFlightRequests = new Map();
+const cacheEpochs = new Map();
+
+function cacheDomain(path) {
+  const pathname = path.split('?')[0];
+  if (pathname === '/profile') return '/profile';
+  const match = pathname.match(/^\/(projects|blogs)(?:\/[^/]+)?$/);
+  if (!match || pathname === `/${match[1]}/admin`) return null;
+  return `/${match[1]}`;
+}
+
+function invalidateDomain(domain) {
+  if (!domain) return;
+  cacheEpochs.set(domain, (cacheEpochs.get(domain) || 0) + 1);
+  store.dispatch(invalidateCache(domain));
+  for (const [key, request] of inFlightRequests) {
+    if (request.domain === domain) inFlightRequests.delete(key);
+  }
+}
+
+function invalidateForMutation(path) {
+  const domain = cacheDomain(path);
+  if (domain) invalidateDomain(domain);
+  else if (/^\/(projects|blogs)(?:\/|$)/.test(path)) {
+    invalidateDomain(`/${path.split('/')[1]}`);
+  }
+}
 
 export async function streamChat(question, conversationId, onEvent, { signal } = {}) {
   const controller = new AbortController();
@@ -91,11 +120,40 @@ export async function streamChat(question, conversationId, onEvent, { signal } =
 }
 
 export async function api(path, opt = {}) {
+  const method = (opt.method || 'GET').toUpperCase();
   const isForm = opt.body instanceof FormData;
-  const r = await fetch(B + path, { credentials: 'include', ...opt, headers: isForm ? {} : { 'Content-Type': 'application/json' } });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.message || 'Request failed');
-  return j;
+  const domain = method === 'GET' ? cacheDomain(path) : null;
+  const cacheKey = path;
+  if (domain) {
+    const entries = store.getState().apiCache.entries;
+    if (Object.prototype.hasOwnProperty.call(entries, cacheKey)) return entries[cacheKey];
+    const pending = inFlightRequests.get(cacheKey);
+    if (pending) return pending.promise;
+  }
+
+  const epoch = domain ? (cacheEpochs.get(domain) || 0) : 0;
+  const request = (async () => {
+    const r = await fetch(B + path, {
+      credentials: 'include',
+      ...opt,
+      headers: isForm ? {} : { 'Content-Type': 'application/json' },
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.message || 'Request failed');
+    if (domain && epoch === (cacheEpochs.get(domain) || 0)) {
+      store.dispatch(cacheResponse({ key: cacheKey, data: j }));
+    } else if (method !== 'GET') {
+      invalidateForMutation(path);
+    }
+    return j;
+  })();
+
+  if (domain) inFlightRequests.set(cacheKey, { promise: request, domain });
+  try {
+    return await request;
+  } finally {
+    if (inFlightRequests.get(cacheKey)?.promise === request) inFlightRequests.delete(cacheKey);
+  }
 }
 
 export function uploadApi(path, { method = 'POST', body }, onProgress) {
@@ -118,6 +176,7 @@ export function uploadApi(path, { method = 'POST', body }, onProgress) {
         reject(new Error(result.message || 'Upload request failed.'));
         return;
       }
+      invalidateForMutation(path);
       resolve(result);
     });
     request.addEventListener('error', () => reject(new Error('Upload failed. Check your connection and try again.')));
