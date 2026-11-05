@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, GraduationCap, ArrowLeft, Github, Code2, ExternalLink, Flame, Trophy, LoaderCircle, Play, X } from 'lucide-react';
@@ -6,6 +6,12 @@ import { api, arr } from './api.js';
 import { TechStack, ProjectCard, Contact, Avatar, Head } from './components.jsx';
 import { PROFILE } from './Profile.js';
 import { PROJECT_CATEGORIES, sortProjectsByCategory } from './projectCategories.js';
+
+function articleReadingTime(post) {
+  if (Number.isFinite(post.readingTime) && post.readingTime > 0) return post.readingTime;
+  const words = (post.content || '').trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
 
 const useGet = (path, init = []) => {
   const [d, setD] = useState(init); const [l, setL] = useState(true); const [err, setErr] = useState('');
@@ -214,34 +220,39 @@ export function ProjectDetail() {
 export function Blog() {
   const [d, l, err] = useGet('/blogs');
   const posts = arr(d);
-  return <Wrap title="Blog" sub="Thoughts, tutorials and notes">
+  return <Wrap title="Engineering notes" sub="Practical ideas, systems, and lessons from building software.">
     {l ? <p className="text-slate-500">Loading...</p>
       : err ? <p className="text-red-600">Unable to load blog posts: {err}</p>
       : posts.length === 0 ? <p className="text-slate-500">No published blog posts yet.</p>
-      : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      : <div className="divide-y divide-slate-200 border-y border-slate-200">
         {posts.map(b => (
-          <Link key={b._id} to={`/blog/${b.slug}`} className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-400">
-            <div className="h-44 overflow-hidden bg-slate-100">
-              {(b.coverImageUrl || b.coverImage) && <img src={b.coverImageUrl || b.coverImage} alt={b.title} className="h-full w-full object-cover" />}
+          <Link key={b._id} to={`/blog/${b.slug}`} className="group grid min-w-0 gap-5 py-7 transition-colors hover:bg-white/70 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center sm:px-5">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
+                {(b.publishedAt || b.createdAt) && <time dateTime={b.publishedAt || b.createdAt}>{new Date(b.publishedAt || b.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</time>}
+                <span>{articleReadingTime(b)} min read</span>
+              </div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900 transition-colors group-hover:text-slate-600 sm:text-2xl">{b.title}</h2>
+              <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-7 text-slate-600">{b.excerpt || b.content}</p>
+              {!!b.tags?.length && <ul className="mt-4 flex flex-wrap gap-2" aria-label="Article tags">
+                {b.tags.slice(0, 4).map(tag => <li key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{tag}</li>)}
+              </ul>}
             </div>
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-slate-900 transition-colors group-hover:text-slate-600">{b.title}</h3>
-              <p className="mt-2 line-clamp-2 text-sm text-slate-500">{b.excerpt || b.content}</p>
-            </div>
+            {(b.coverImageUrl || b.coverImage) && <div className="aspect-[16/10] overflow-hidden rounded-xl bg-slate-100 sm:aspect-[4/3]">
+              <img src={b.coverImageUrl || b.coverImage} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            </div>}
+            <span className="sr-only">Read {b.title}</span>
           </Link>
         ))}
       </div>}
   </Wrap>;
 }
 
+const LazyBlogArticle = lazy(() => import('./BlogArticle.jsx'));
 export function BlogPost() {
-  const { slug } = useParams(); const [d, l, err] = useGet(`/blogs/${slug}`, {}); const b = d?.data || d;
-  if (l) return <Wrap title="Loading..." sub="" />;
-  if (err) return <Wrap title="Blog post unavailable" sub={err} />;
-  return <Wrap title={b.title || '...'} sub={b.createdAt && new Date(b.createdAt).toDateString()}>
-    {(b.coverImageUrl || b.coverImage) && <img src={b.coverImageUrl || b.coverImage} alt={b.title} className="mb-8 max-h-[28rem] w-full rounded-3xl object-cover" />}
-    <article className="max-w-3xl whitespace-pre-line leading-8 text-slate-600">{b.content}</article>
-  </Wrap>;
+  return <Suspense fallback={<main className="mx-auto max-w-3xl px-5 pb-24 pt-32 sm:px-6"><p className="text-slate-500">Loading article...</p></main>}>
+    <LazyBlogArticle />
+  </Suspense>;
 }
 
 export function Education() {
